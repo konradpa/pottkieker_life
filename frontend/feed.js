@@ -569,7 +569,21 @@ function getMensaDisplayName(location) {
 }
 
 function formatTime(timestamp) {
-    const date = new Date(timestamp);
+    // Normalize SQLite UTC timestamps ("YYYY-MM-DD HH:MM:SS") to ISO with Z
+    let date;
+    if (typeof timestamp === 'string') {
+        const m = timestamp.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/);
+        if (m) {
+            date = new Date(`${m[1]}T${m[2]}Z`);
+        } else {
+            date = new Date(timestamp);
+        }
+    } else {
+        date = new Date(timestamp);
+    }
+
+    if (isNaN(date)) return '';
+
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
