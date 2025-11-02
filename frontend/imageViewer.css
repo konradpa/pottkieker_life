@@ -27,17 +27,16 @@
 
 /* Main image display */
 .image-viewer-main {
-    position: relative;
-    max-width: 90vw;
-    max-height: 75vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 20px;
+    max-width: 95vw;
     margin: 0 auto;
 }
 
 .image-viewer-image {
-    max-width: 100%;
+    max-width: 80vw;
     max-height: 75vh;
     object-fit: contain;
     border: var(--bw) solid var(--accent);
@@ -60,9 +59,6 @@
 
 /* Navigation arrows */
 .image-viewer-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
     background: linear-gradient(135deg, var(--bg-4), var(--bg-3));
     border: var(--bw) solid var(--accent-2);
     color: var(--accent-2);
@@ -75,9 +71,9 @@
     justify-content: center;
     cursor: pointer;
     transition: all var(--t-fast);
-    z-index: 10;
     font-weight: bold;
     line-height: 1;
+    flex-shrink: 0;
 }
 
 .image-viewer-nav:hover {
@@ -85,11 +81,11 @@
     border-color: var(--accent-3);
     color: var(--bg-0);
     box-shadow: var(--shadow-cyan);
-    transform: translateY(-50%) scale(1.05);
+    transform: scale(1.05);
 }
 
 .image-viewer-nav:active {
-    transform: translateY(-50%) scale(0.95);
+    transform: scale(0.95);
 }
 
 .image-viewer-nav.disabled {
@@ -99,11 +95,11 @@
 }
 
 .image-viewer-prev {
-    left: 20px;
+    order: -1;
 }
 
 .image-viewer-next {
-    right: 20px;
+    order: 1;
 }
 
 /* Close button */
@@ -301,11 +297,11 @@
     }
 
     .image-viewer-main {
-        max-width: 95vw;
-        max-height: 65vh;
+        gap: 10px;
     }
 
     .image-viewer-image {
+        max-width: 70vw;
         max-height: 65vh;
     }
 
@@ -313,14 +309,6 @@
         width: 38px;
         height: 38px;
         font-size: 24px;
-    }
-
-    .image-viewer-prev {
-        left: 10px;
-    }
-
-    .image-viewer-next {
-        right: 10px;
     }
 
     .image-viewer-close {
@@ -359,7 +347,7 @@
 /* Touch feedback for mobile */
 @media (hover: none) {
     .image-viewer-nav:active {
-        transform: translateY(-50%) scale(0.9);
+        transform: scale(0.9);
     }
 
     .image-viewer-close:active {
