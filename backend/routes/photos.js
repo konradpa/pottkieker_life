@@ -3,8 +3,10 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
+const sharp = require('sharp');
 const router = express.Router();
 const db = require('../database');
+const { hashIP } = require('../utils/hashIP');
 
 // Setup upload directory
 const UPLOAD_ROOT = path.join(__dirname, '../uploads');
@@ -99,6 +101,32 @@ function getTodayDate() {
   const month = String(today.getMonth() + 1).padStart(2, '0');
   const day = String(today.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Strip EXIF metadata from uploaded photo for privacy
+ * @param {string} filePath - Path to the uploaded file
+ */
+async function stripExifMetadata(filePath) {
+  try {
+    // Read the image, strip metadata, and overwrite
+    await sharp(filePath)
+      .rotate() // Auto-rotate based on EXIF (before stripping)
+      .withMetadata({ orientation: undefined }) // Remove EXIF but keep basic info
+      .toBuffer()
+      .then(buffer => {
+        // Completely strip all metadata
+        return sharp(buffer)
+          .toFile(filePath + '.tmp');
+      })
+      .then(() => {
+        // Replace original with stripped version
+        fs.renameSync(filePath + '.tmp', filePath);
+      });
+  } catch (err) {
+    console.error('Failed to strip EXIF metadata:', err);
+    // Don't fail the upload, just log the error
+  }
 }
 
 /**
@@ -202,12 +230,15 @@ router.post('/', (req, res, next) => {
 
     next();
   });
-}, (req, res) => {
+}, async (req, res) => {
   const { meal_id, author_name, caption = '' } = req.body;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
   const uploadedPhoto = req.file;
   const photoPath = relativePhotoPath(uploadedPhoto);
   const today = getTodayDate();
+
+  // Strip EXIF metadata for privacy
+  await stripExifMetadata(uploadedPhoto.path);
 
   // Validate input
   if (!meal_id || !author_name) {
@@ -302,7 +333,7 @@ router.post('/', (req, res, next) => {
  */
 router.delete('/:photoId', (req, res) => {
   const { photoId } = req.params;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   db.get(
     'SELECT photo_path FROM food_photos WHERE id = ? AND ip_address = ?',
@@ -346,7 +377,7 @@ router.delete('/:photoId', (req, res) => {
  */
 router.post('/:photoId/vote', (req, res) => {
   const { photoId } = req.params;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   // Check if photo exists and if user has already voted
   db.get('SELECT id FROM food_photos WHERE id = ?', [photoId], (err, photo) => {
@@ -468,7 +499,7 @@ router.get('/:photoId/comments', (req, res) => {
 router.post('/:photoId/comments', express.json(), (req, res) => {
   const { photoId } = req.params;
   const { author_name, comment_text } = req.body;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   // Validate input
   if (!author_name || !comment_text) {
@@ -549,7 +580,7 @@ router.post('/:photoId/comments', express.json(), (req, res) => {
  */
 router.delete('/comments/:commentId', (req, res) => {
   const { commentId } = req.params;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   db.run(
     'DELETE FROM photo_comments WHERE id = ? AND ip_address = ?',
@@ -575,7 +606,7 @@ router.delete('/comments/:commentId', (req, res) => {
  */
 router.get('/by-meal/:mealId', (req, res) => {
   const { mealId } = req.params;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   const query = `
     SELECT

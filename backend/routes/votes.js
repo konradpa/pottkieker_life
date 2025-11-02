@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { hashIP } = require('../utils/hashIP');
 
 /**
  * POST /api/votes/:mealId
@@ -10,7 +11,7 @@ const db = require('../database');
 router.post('/:mealId', (req, res) => {
   const { mealId } = req.params;
   const { vote_type } = req.body;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   // Validate vote type
   if (!vote_type || (vote_type !== 'up' && vote_type !== 'down')) {
@@ -126,7 +127,7 @@ router.post('/:mealId', (req, res) => {
  */
 router.delete('/:mealId', (req, res) => {
   const { mealId } = req.params;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   db.run(
     'DELETE FROM votes WHERE meal_id = ? AND ip_address = ?',

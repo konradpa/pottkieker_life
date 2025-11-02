@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { hashIP } = require('../utils/hashIP');
 
 /**
  * GET /api/comments/:mealId
@@ -43,7 +44,7 @@ router.get('/:mealId', (req, res) => {
 router.post('/:mealId', express.json(), (req, res) => {
   const { mealId } = req.params;
   const { author_name, comment_text } = req.body;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   // Validate input
   if (!author_name || !comment_text) {
@@ -124,7 +125,7 @@ router.post('/:mealId', express.json(), (req, res) => {
  */
 router.delete('/:commentId', (req, res) => {
   const { commentId } = req.params;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   db.run(
     'DELETE FROM comments WHERE id = ? AND ip_address = ?',

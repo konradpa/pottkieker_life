@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const { hashIP } = require('../utils/hashIP');
 
 function sendPortionCounts(res, mealId) {
   db.get(
@@ -28,7 +29,7 @@ function sendPortionCounts(res, mealId) {
 router.post('/:mealId', (req, res) => {
   const { mealId } = req.params;
   const { portion_size } = req.body;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   if (!portion_size || (portion_size !== 'big' && portion_size !== 'small')) {
     return res.status(400).json({ error: 'Invalid portion size. Must be "big" or "small"' });
@@ -64,7 +65,7 @@ router.post('/:mealId', (req, res) => {
 
 router.delete('/:mealId', (req, res) => {
   const { mealId } = req.params;
-  const ip_address = req.ip || req.connection.remoteAddress;
+  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   db.run(
     'DELETE FROM portion_votes WHERE meal_id = ? AND ip_address = ?',

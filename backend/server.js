@@ -1,5 +1,7 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 
 // Import routes
@@ -8,6 +10,7 @@ const votesRouter = require('./routes/votes');
 const portionsRouter = require('./routes/portions');
 const commentsRouter = require('./routes/comments');
 const photosRouter = require('./routes/photos');
+const adminRouter = require('./routes/admin');
 
 // Initialize database
 require('./database');
@@ -19,8 +22,21 @@ initPhotoCleanupScheduler();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Allow inline scripts for simplicity
+  crossOriginEmbedderPolicy: false // Allow image loading
+}));
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.CORS_ORIGIN
+    : '*',
+  credentials: true
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -34,6 +50,7 @@ app.use('/api/votes', votesRouter);
 app.use('/api/portions', portionsRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/photos', photosRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
