@@ -186,10 +186,10 @@ function createMealCard(meal) {
     ` : '';
 
     return `
-        <div class="meal-card" data-meal-id="${meal.id}">
+        <div class="meal-card" data-meal-id="${meal.id}" data-location="${meal.mensa_location || ''}">
             <div class="meal-header">
                 <div class="meal-info">
-                    ${showLocation && locationLabel ? `<div class="meal-location">${escapeHtml(locationLabel)}</div>` : ''}
+                    ${showLocation && locationLabel ? `<div class="meal-location" data-location="${meal.mensa_location || ''}">${escapeHtml(locationLabel)}</div>` : ''}
                     <div class="meal-name">${escapeHtml(displayName)}</div>
                     ${meal.notes ? `<div class="meal-notes">${escapeHtml(meal.notes)}</div>` : ''}
                     ${priceInfo.display ? `<div class="meal-price">${escapeHtml(priceInfo.display)}</div>` : ''}
@@ -210,7 +210,7 @@ function createMealCard(meal) {
                 Show Comments
             </button>
             <div class="comments-section" id="comments-${meal.id}" style="display: none;">
-                <div class="comments-header">Comments</div>
+                <div class="comments-header">[ COMMENTS ]</div>
                 <div class="comments-list" id="comments-list-${meal.id}">
                     <div class="loading">Loading comments...</div>
                 </div>

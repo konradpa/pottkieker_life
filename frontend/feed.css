@@ -16,8 +16,8 @@
     background: var(--bg-4);
     border: var(--bw) solid var(--accent);
     font-weight: 600;
-    font-size: 10px;
-    letter-spacing: 1px;
+    font-size: var(--size-s);
+    letter-spacing: var(--track-tight);
     text-transform: uppercase;
     transition: all var(--t-fast);
     position: relative;
@@ -43,7 +43,7 @@
     background: var(--bg-1);
     color: var(--accent-bright);
     border-color: var(--accent-2);
-    box-shadow: var(--shadow-cyan);
+    box-shadow: var(--shadow-accent);
 }
 
 .page-nav a.active {
@@ -55,15 +55,12 @@
 
 /* Upload Section */
 .upload-section {
-    background: var(--bg-2);
-    background-image: linear-gradient(135deg, rgba(189, 147, 249, 0.03), rgba(97, 175, 239, 0.03)), var(--bg-2);
+    background: var(--bg-3);
+    background-image: linear-gradient(115deg, rgba(97, 175, 239, 0.05), rgba(8, 192, 208, 0));
     padding: 16px;
     margin-bottom: 20px;
     border-radius: var(--br);
-    border-left: 3px solid var(--magenta);
-    border-top: 2px solid var(--purple-bright);
-    border-right: 3px solid var(--accent);
-    border-bottom: 2px solid var(--purple);
+    border: var(--bw) solid var(--accent);
     position: relative;
 }
 
@@ -76,34 +73,33 @@
     height: 1px;
     background: linear-gradient(90deg,
         transparent 0%,
-        var(--magenta) 20%,
-        var(--purple-bright) 50%,
-        var(--accent) 80%,
+        rgba(97, 175, 239, 0.2) 35%,
+        rgba(8, 192, 208, 0.4) 65%,
         transparent 100%);
-    opacity: 0.5;
+    opacity: 0.4;
 }
 
 .upload-toggle-btn {
     width: 100%;
     padding: 10px 20px;
     background: linear-gradient(135deg, var(--bg-4), var(--bg-3));
-    color: var(--magenta);
-    border: var(--bw) solid var(--purple-bright);
+    color: var(--accent);
+    border: var(--bw) solid var(--accent);
     border-radius: var(--br);
     cursor: pointer;
     font-weight: 600;
-    font-size: 11px;
-    letter-spacing: 2px;
+    font-size: var(--size-s);
+    letter-spacing: var(--track-tight);
     text-transform: uppercase;
     transition: all var(--t-fast);
     font-family: inherit;
 }
 
 .upload-toggle-btn:hover {
-    background: linear-gradient(135deg, var(--purple), var(--magenta));
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #1e1e2e;
-    border-color: var(--magenta);
-    box-shadow: 0 0 12px rgba(255, 121, 198, 0.5);
+    border-color: var(--accent-2);
+    box-shadow: var(--shadow-accent);
 }
 
 .upload-form-container {
@@ -123,12 +119,12 @@
 }
 
 .upload-form-container h3 {
-    color: var(--purple-bright);
+    color: var(--accent-2);
     margin-bottom: 12px;
-    font-size: 12px;
-    letter-spacing: 2px;
+    font-size: var(--size-m);
+    letter-spacing: var(--track-wide);
     text-transform: uppercase;
-    text-shadow: 0 0 8px rgba(189, 147, 249, 0.3);
+    text-shadow: 0 0 10px rgba(136, 192, 208, 0.25);
 }
 
 .form-group {
@@ -138,10 +134,10 @@
 .form-group label {
     display: block;
     font-weight: 600;
-    color: var(--accent-bright);
+    color: var(--accent-2);
     margin-bottom: 6px;
-    letter-spacing: 1px;
-    font-size: 10px;
+    letter-spacing: var(--track-tight);
+    font-size: var(--size-s);
     text-transform: uppercase;
 }
 
@@ -151,9 +147,9 @@
 .form-group textarea {
     width: 100%;
     padding: 8px 10px;
-    border: var(--bw) solid var(--purple);
+    border: var(--bw) solid var(--accent);
     border-radius: var(--br);
-    font-size: 11px;
+    font-size: var(--size-s);
     background: var(--bg-4);
     color: var(--text);
     font-family: inherit;
@@ -164,8 +160,8 @@
 .form-group select:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: var(--magenta);
-    box-shadow: 0 0 10px rgba(255, 121, 198, 0.4);
+    border-color: var(--accent-2);
+    box-shadow: var(--shadow-accent);
 }
 
 .form-group textarea {
@@ -182,10 +178,7 @@
     max-height: 250px;
     border-radius: var(--br);
     object-fit: cover;
-    border-left: 3px solid var(--accent);
-    border-top: 2px solid var(--purple);
-    border-right: 3px solid var(--green);
-    border-bottom: 2px solid var(--accent-2);
+    border: var(--bw) solid var(--accent);
 }
 
 .form-actions {
@@ -197,22 +190,22 @@
 .submit-btn {
     flex: 1;
     padding: 10px 20px;
-    background: linear-gradient(135deg, var(--green), var(--green-bright));
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #1e1e2e;
-    border: var(--bw) solid var(--green-bright);
+    border: var(--bw) solid var(--accent-2);
     border-radius: var(--br);
     cursor: pointer;
     font-weight: 600;
-    letter-spacing: 1px;
+    letter-spacing: var(--track-tight);
     text-transform: uppercase;
     transition: all var(--t-fast);
     font-family: inherit;
-    font-size: 10px;
+    font-size: var(--size-s);
 }
 
 .submit-btn:hover {
-    background: linear-gradient(135deg, var(--green-bright), var(--green-neon));
-    box-shadow: var(--shadow-green);
+    background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
+    box-shadow: var(--shadow-accent);
 }
 
 .cancel-btn {
@@ -223,11 +216,11 @@
     border-radius: var(--br);
     cursor: pointer;
     font-weight: 600;
-    letter-spacing: 1px;
+    letter-spacing: var(--track-tight);
     text-transform: uppercase;
     transition: all var(--t-fast);
     font-family: inherit;
-    font-size: 10px;
+    font-size: var(--size-s);
 }
 
 .cancel-btn:hover {
@@ -240,22 +233,19 @@
 /* Photos Grid */
 .photos-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 16px;
     margin-bottom: 40px;
 }
 
 /* Photo Card */
 .photo-card {
-    background: var(--bg-2);
+    background: var(--bg-3);
     background-image:
-        repeating-linear-gradient(0deg, rgba(255, 121, 198, 0.02) 0px, transparent 1px, transparent 2px, rgba(255, 121, 198, 0.02) 3px),
-        linear-gradient(135deg, rgba(189, 147, 249, 0.03), transparent 50%, rgba(97, 175, 239, 0.03));
+        linear-gradient(120deg, rgba(97, 175, 239, 0.05), rgba(8, 192, 208, 0)),
+        repeating-linear-gradient(0deg, rgba(97, 175, 239, 0.02) 0px, transparent 1px, transparent 2px, rgba(97, 175, 239, 0.02) 3px);
     border-radius: var(--br);
-    border-left: 3px solid var(--purple-bright);
-    border-top: 2px solid var(--accent);
-    border-right: 3px solid var(--magenta);
-    border-bottom: 2px solid var(--purple);
+    border: var(--bw) solid var(--accent);
     overflow: hidden;
     transition: all var(--t-fast);
     position: relative;
@@ -268,12 +258,7 @@
     left: -1px;
     right: -1px;
     bottom: -1px;
-    background: linear-gradient(135deg,
-        var(--magenta) 0%,
-        var(--purple-bright) 25%,
-        var(--accent) 50%,
-        var(--green) 75%,
-        var(--warm) 100%);
+    background: linear-gradient(135deg, rgba(97, 175, 239, 0.35), rgba(8, 192, 208, 0));
     border-radius: var(--br);
     opacity: 0;
     transition: opacity var(--t-fast);
@@ -285,9 +270,9 @@
 }
 
 .photo-card:hover {
-    box-shadow:
-        0 0 15px rgba(255, 121, 198, 0.3),
-        0 0 25px rgba(189, 147, 249, 0.2);
+    background: var(--bg-2);
+    border-color: var(--accent-2);
+    box-shadow: var(--shadow-accent);
     transform: translateY(-2px);
 }
 
@@ -353,38 +338,38 @@
     font-weight: 600;
     color: var(--accent-bright);
     margin-bottom: 4px;
-    font-size: 12px;
-    letter-spacing: 1px;
+    font-size: var(--size-m);
+    letter-spacing: var(--track-tight);
     text-transform: uppercase;
     text-shadow: 0 0 8px rgba(8, 192, 208, 0.3);
 }
 
 .photo-mensa {
-    color: var(--purple-bright);
-    font-size: 9px;
+    color: var(--accent-2);
+    font-size: var(--size-xs);
     margin-bottom: 8px;
-    letter-spacing: 2px;
+    letter-spacing: var(--track-tight);
     text-transform: uppercase;
     padding: 2px 6px;
-    background: rgba(189, 147, 249, 0.15);
+    background: rgba(97, 175, 239, 0.12);
     border-radius: var(--br);
     display: inline-block;
-    border: 1px solid var(--purple);
+    border: 1px solid var(--accent);
 }
 
 .photo-caption {
     color: var(--text-muted);
     margin-bottom: 10px;
-    font-size: 11px;
+    font-size: var(--size-s);
     line-height: 1.4;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--track-tight);
 }
 
 .photo-meta {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 10px;
+    font-size: var(--size-s);
     color: var(--text-dim);
     margin-bottom: 10px;
 }
@@ -392,12 +377,12 @@
 .photo-author {
     font-weight: 600;
     color: var(--warm);
-    letter-spacing: 0.5px;
+    letter-spacing: var(--track-tight);
 }
 
 .photo-time {
     font-style: italic;
-    color: var(--purple);
+    color: var(--accent-3);
 }
 
 /* Photo Actions */
@@ -405,7 +390,7 @@
     display: flex;
     gap: 6px;
     padding-top: 10px;
-    border-top: 1px solid rgba(255, 121, 198, 0.3);
+    border-top: 1px solid rgba(97, 175, 239, 0.3);
 }
 
 .vote-btn {
@@ -448,20 +433,20 @@
     flex: 1;
     padding: 8px;
     background: var(--bg-4);
-    color: var(--purple-bright);
-    border: var(--bw) solid var(--purple);
+    color: var(--accent);
+    border: var(--bw) solid var(--accent);
     border-radius: var(--br);
     cursor: pointer;
     font-weight: 600;
-    font-size: 11px;
+    font-size: var(--size-s);
     transition: all var(--t-fast);
 }
 
 .comments-toggle-btn:hover {
-    background: linear-gradient(135deg, var(--purple), var(--purple-bright));
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #1e1e2e;
-    border-color: var(--purple-bright);
-    box-shadow: var(--shadow-purple);
+    border-color: var(--accent-2);
+    box-shadow: var(--shadow-accent);
 }
 
 /* Comments Section */
@@ -483,7 +468,7 @@
     padding: 8px 10px;
     border: var(--bw) solid var(--accent-2);
     border-radius: var(--br);
-    font-size: 11px;
+    font-size: var(--size-s);
     background: var(--bg-4);
     color: var(--text);
     font-family: inherit;
@@ -494,8 +479,8 @@
 .comment-form input:focus,
 .comment-form textarea:focus {
     outline: none;
-    border-color: var(--purple-bright);
-    box-shadow: var(--shadow-purple);
+    border-color: var(--accent-3);
+    box-shadow: var(--shadow-accent);
 }
 
 .comment-form textarea {
@@ -512,16 +497,16 @@
     border-radius: var(--br);
     cursor: pointer;
     font-weight: 600;
-    font-size: 10px;
-    letter-spacing: 1px;
+    font-size: var(--size-s);
+    letter-spacing: var(--track-tight);
     text-transform: uppercase;
     transition: all var(--t-fast);
     font-family: inherit;
 }
 
 .comment-submit-btn:hover {
-    background: linear-gradient(135deg, var(--accent-bright), var(--accent-bright));
-    box-shadow: var(--shadow-cyan);
+    background: linear-gradient(135deg, var(--accent-2), var(--accent-bright));
+    box-shadow: var(--shadow-accent);
 }
 
 .comments-list {
@@ -534,9 +519,9 @@
     background-image: repeating-linear-gradient(0deg, rgba(97, 175, 239, 0.02) 0px, transparent 1px, transparent 2px);
     border-radius: var(--br);
     margin-bottom: 6px;
-    font-size: 11px;
+    font-size: var(--size-s);
     border-left: var(--bw-lg) solid var(--accent-2);
-    border-top: 1px solid rgba(189, 147, 249, 0.2);
+    border-top: 1px solid rgba(97, 175, 239, 0.2);
 }
 
 .comment-header {
@@ -549,14 +534,14 @@
 
 .comment-author {
     font-weight: 600;
-    color: var(--yellow);
+    color: var(--warm);
     flex: 1;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--track-tight);
 }
 
 .comment-time {
-    font-size: 9px;
-    color: var(--purple);
+    font-size: var(--size-xs);
+    color: var(--accent-3);
     font-style: italic;
 }
 
@@ -589,6 +574,49 @@
     color: var(--text-muted);
     line-height: 1.4;
     letter-spacing: 0.5px;
+}
+
+.hud-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-2);
+    color: var(--text);
+    padding: 10px 14px;
+    border: var(--bw) solid var(--accent);
+    border-radius: var(--br);
+    box-shadow: var(--shadow-accent);
+    letter-spacing: var(--track-tight);
+    font-size: var(--size-s);
+    text-transform: uppercase;
+    z-index: 1000;
+    animation: hud-toast-in var(--t-fast);
+}
+
+.hud-toast--hide {
+    animation: hud-toast-out var(--t-fast) forwards;
+}
+
+@keyframes hud-toast-in {
+    from {
+        transform: translateX(24px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes hud-toast-out {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(24px);
+        opacity: 0;
+    }
 }
 
 /* No Photos Message */

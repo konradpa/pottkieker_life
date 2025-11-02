@@ -69,6 +69,8 @@ class ImageViewer {
     createOverlay() {
         this.overlay = document.createElement('div');
         this.overlay.className = 'image-viewer-overlay';
+        this.overlay.setAttribute('role', 'dialog');
+        this.overlay.setAttribute('aria-modal', 'true');
         this.overlay.innerHTML = `
             <div class="image-viewer-container">
                 <button class="image-viewer-close" aria-label="Close viewer">×</button>

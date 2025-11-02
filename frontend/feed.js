@@ -604,26 +604,16 @@ function showUploadError(message) {
 
 function showMessage(message) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'success-message';
+    messageDiv.className = 'hud-toast';
     messageDiv.textContent = message;
-    messageDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: var(--accent);
-        color: white;
-        padding: 16px 24px;
-        border-radius: 14px;
-        box-shadow: 0 8px 20px rgba(87, 123, 89, 0.4);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-    `;
     document.body.appendChild(messageDiv);
 
     setTimeout(() => {
-        messageDiv.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => messageDiv.remove(), 300);
-    }, 3000);
+        messageDiv.classList.add('hud-toast--hide');
+        const removeToast = () => messageDiv.remove();
+        messageDiv.addEventListener('animationend', removeToast, { once: true });
+        setTimeout(removeToast, 500); // fallback in case animationend does not fire
+    }, 2800);
 }
 
 // Vote tracking using localStorage
@@ -637,32 +627,6 @@ function loadVotedPhotos() {
 function saveVotedPhotos() {
     localStorage.setItem('votedPhotos', JSON.stringify([...votedPhotos]));
 }
-
-// Add animation styles
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 
 // Expose functions to global scope for onclick handlers
 window.handleVote = handleVote;
