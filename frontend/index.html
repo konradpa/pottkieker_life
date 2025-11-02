@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UHH Mensa Rating</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="imageViewer.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>[ UHH MENSA RATING ]</h1>
+            <p class="subtitle">[ rate today's meals ]</p>
+            <nav class="page-nav">
+                <a href="index.html" class="active">Meal Plan</a>
+                <a href="feed.html">Photo Feed</a>
+            </nav>
+        </header>
+
+        <div class="controls">
+            <label for="location-select">Mensa Location:</label>
+            <select id="location-select">
+                <option value="studierendenhaus" selected>Schweinemensa</option>
+                <option value="blattwerk">Blattwerk</option>
+                <option value="philturm">Philturm</option>
+                <option value="all">All Locations</option>
+            </select>
+            <button id="refresh-btn">Refresh</button>
+            <label for="sort-select" class="sort-label">Sort by:</label>
+            <select id="sort-select">
+                <option value="upvotes">Top Rated</option>
+                <option value="price">Price ↑</option>
+            </select>
+        </div>
+
+        <div id="loading" class="loading">Loading meals...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="meals-container"></div>
+        <div class="opening-times" id="opening-times">
+            OPENING TIMES Mo - Fr 11.00 - 14.30 Uhr
+        </div>
+    </div>
+
+    <script src="imageViewer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

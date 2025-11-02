@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UHH Mensa Food Photos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="feed.css">
+    <link rel="stylesheet" href="imageViewer.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>[ UHH FOOD PHOTOS ]</h1>
+            <p class="subtitle">[ today's meal snapshots ]</p>
+            <nav class="page-nav">
+                <a href="index.html">Meal Plan</a>
+                <a href="feed.html" class="active">Photo Feed</a>
+            </nav>
+        </header>
+
+        <div class="upload-section">
+            <button id="upload-btn" class="upload-toggle-btn">Upload Photo</button>
+            <div id="upload-form-container" class="upload-form-container" style="display: none;">
+                <h3>Upload Your Food Photo</h3>
+                <form id="photo-upload-form" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="photo-input">Photo:</label>
+                        <input type="file" id="photo-input" name="photo" accept="image/*" required>
+                        <div id="photo-preview" class="photo-preview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="upload-mensa-select">Mensa Location:</label>
+                        <select id="upload-mensa-select" required>
+                            <option value="">Select mensa first...</option>
+                            <option value="studierendenhaus">Schweinemensa</option>
+                            <option value="blattwerk">Blattwerk</option>
+                            <option value="philturm">Philturm</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="meal-select">Meal:</label>
+                        <select id="meal-select" name="meal_id" required disabled>
+                            <option value="">Select mensa first...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="author-input">Your Name:</label>
+                        <input type="text" id="author-input" name="author_name" maxlength="50" placeholder="Anonymous" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="caption-input">Caption (optional):</label>
+                        <textarea id="caption-input" name="caption" maxlength="200" placeholder="How was it?"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="submit-btn">Upload</button>
+                        <button type="button" id="cancel-upload-btn" class="cancel-btn">Cancel</button>
+                    </div>
+                    <div id="upload-error" class="error" style="display: none;"></div>
+                </form>
+            </div>
+        </div>
+
+        <div class="controls">
+            <label for="mensa-filter">Mensa:</label>
+            <select id="mensa-filter">
+                <option value="all" selected>All Locations</option>
+                <option value="studierendenhaus">Schweinemensa</option>
+                <option value="blattwerk">Blattwerk</option>
+                <option value="philturm">Philturm</option>
+            </select>
+            <label for="sort-filter" class="sort-label">Sort by:</label>
+            <select id="sort-filter">
+                <option value="new" selected>Newest First</option>
+                <option value="top">Most Upvoted</option>
+            </select>
+            <button id="refresh-btn">Refresh</button>
+        </div>
+
+        <div id="loading" class="loading">Loading photos...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="photos-container" class="photos-grid"></div>
+
+        <div class="no-photos" id="no-photos" style="display: none;">
+            <p>No photos yet today. Be the first to upload!</p>
+        </div>
+    </div>
+
+    <script src="imageViewer.js"></script>
+    <script src="feed.js"></script>
+</body>
+</html>

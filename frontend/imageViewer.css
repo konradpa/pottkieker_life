@@ -1,0 +1,372 @@
+/* Image Viewer - Dark Nord HUD Style */
+
+.image-viewer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 26, 46, 0.97);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn var(--t-fast) ease-out;
+}
+
+.image-viewer-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Main image display */
+.image-viewer-main {
+    position: relative;
+    max-width: 90vw;
+    max-height: 75vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.image-viewer-image {
+    max-width: 100%;
+    max-height: 75vh;
+    object-fit: contain;
+    border: var(--bw) solid var(--accent);
+    border-radius: var(--br);
+    background: var(--bg-0);
+    box-shadow: var(--shadow-cyan);
+    animation: imageSlideIn var(--t-med) ease-out;
+}
+
+@keyframes imageSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Navigation arrows */
+.image-viewer-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, var(--bg-4), var(--bg-3));
+    border: var(--bw) solid var(--accent-2);
+    color: var(--accent-2);
+    font-size: 28px;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--br);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--t-fast);
+    z-index: 10;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.image-viewer-nav:hover {
+    background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
+    border-color: var(--accent-3);
+    color: var(--bg-0);
+    box-shadow: var(--shadow-cyan);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.image-viewer-nav:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.image-viewer-nav.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.image-viewer-prev {
+    left: 20px;
+}
+
+.image-viewer-next {
+    right: 20px;
+}
+
+/* Close button */
+.image-viewer-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--bg-4), var(--bg-3));
+    border: var(--bw) solid var(--danger);
+    color: var(--danger);
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--br);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--t-fast);
+    font-weight: bold;
+    line-height: 1;
+    z-index: 10;
+}
+
+.image-viewer-close:hover {
+    background: linear-gradient(135deg, var(--danger), var(--danger-bright));
+    border-color: var(--danger-bright);
+    color: var(--bg-0);
+    box-shadow: 0 0 8px rgba(224, 108, 117, 0.4);
+    transform: scale(1.05);
+}
+
+.image-viewer-close:active {
+    transform: scale(0.95);
+}
+
+/* Image counter */
+.image-viewer-counter {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--bg-4), var(--bg-3));
+    border: var(--bw) solid var(--accent);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: var(--br);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+/* Photo info section */
+.image-viewer-info {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--bg-2), var(--bg-3));
+    border-left: var(--bw) solid var(--accent-2);
+    border-top: var(--bw) solid var(--accent);
+    border-right: var(--bw) solid var(--accent-3);
+    border-bottom: var(--bw) solid var(--green);
+    border-radius: var(--br);
+    padding: 12px 18px;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: var(--shadow-cyan);
+}
+
+.image-viewer-meal-name {
+    color: var(--accent-3);
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+}
+
+.image-viewer-caption {
+    color: var(--text);
+    margin-bottom: 8px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.image-viewer-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.image-viewer-author {
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+
+.image-viewer-author strong {
+    color: var(--accent-2);
+    font-weight: 600;
+}
+
+/* Like button - match feed style exactly */
+.image-viewer-like-btn {
+    background: linear-gradient(135deg, var(--bg-4), var(--bg-3));
+    border: var(--bw) solid var(--green);
+    color: var(--green-bright);
+    padding: 6px 12px;
+    border-radius: var(--br);
+    cursor: pointer;
+    transition: all var(--t-fast);
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.image-viewer-like-btn:hover {
+    background: linear-gradient(135deg, var(--green), var(--green-bright));
+    color: var(--bg-0);
+    border-color: var(--green-bright);
+    box-shadow: var(--shadow-green);
+    transform: scale(1.05);
+}
+
+.image-viewer-like-btn:active {
+    transform: scale(0.95);
+}
+
+.image-viewer-like-btn.liked {
+    background: linear-gradient(135deg, var(--warm), var(--orange));
+    color: var(--bg-0);
+    border-color: var(--warm);
+    box-shadow: var(--shadow-warm);
+}
+
+.image-viewer-like-btn.liked:hover {
+    opacity: 0.9;
+}
+
+/* Keyboard hint */
+.image-viewer-hint {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--bg-4), var(--bg-3));
+    border: var(--bw) solid var(--accent);
+    color: var(--text-dim);
+    padding: 6px 10px;
+    border-radius: var(--br);
+    font-size: 9px;
+    letter-spacing: 1px;
+    opacity: 0.6;
+}
+
+/* Loading state */
+.image-viewer-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .image-viewer-container {
+        padding: 10px;
+    }
+
+    .image-viewer-main {
+        max-width: 95vw;
+        max-height: 65vh;
+    }
+
+    .image-viewer-image {
+        max-height: 65vh;
+    }
+
+    .image-viewer-nav {
+        width: 38px;
+        height: 38px;
+        font-size: 24px;
+    }
+
+    .image-viewer-prev {
+        left: 10px;
+    }
+
+    .image-viewer-next {
+        right: 10px;
+    }
+
+    .image-viewer-close {
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+    }
+
+    .image-viewer-counter {
+        top: 10px;
+        font-size: 10px;
+        padding: 5px 10px;
+    }
+
+    .image-viewer-info {
+        bottom: 10px;
+        padding: 10px 14px;
+        width: 95%;
+    }
+
+    .image-viewer-meal-name {
+        font-size: 11px;
+    }
+
+    .image-viewer-caption {
+        font-size: 10px;
+    }
+
+    .image-viewer-hint {
+        display: none;
+    }
+}
+
+/* Touch feedback for mobile */
+@media (hover: none) {
+    .image-viewer-nav:active {
+        transform: translateY(-50%) scale(0.9);
+    }
+
+    .image-viewer-close:active {
+        transform: scale(0.9);
+    }
+
+    .image-viewer-like-btn:active {
+        transform: scale(0.9);
+    }
+}

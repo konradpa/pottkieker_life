@@ -1,0 +1,25 @@
+{
+  "name": "mensa-rating",
+  "version": "1.0.0",
+  "description": "Rating website for Universität Hamburg Mensa meals",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "keywords": [
+    "mensa",
+    "uni-hamburg",
+    "rating"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.2.1",
+    "sqlite3": "^5.1.6",
+    "xml2js": "^0.6.2"
+  }
+}
