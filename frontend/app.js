@@ -217,7 +217,7 @@ function createMealCard(meal) {
             </div>
             ${photoGalleryHTML}
             <button class="toggle-comments-btn" data-meal-id="${meal.id}">
-                Show Comments
+                💬 Show Comments (${meal.comment_count || 0})
             </button>
             <div class="comments-section" id="comments-${meal.id}" style="display: none;">
                 <div class="comments-header">[ COMMENTS ]</div>
@@ -343,13 +343,17 @@ async function handleToggleComments(e) {
     const mealId = btn.dataset.mealId;
     const commentsSection = document.getElementById(`comments-${mealId}`);
 
+    // Get current comment count from meal data
+    const meal = currentMeals.find(m => String(m.id) === String(mealId));
+    const count = meal?.comment_count || 0;
+
     if (commentsSection.style.display === 'none') {
         commentsSection.style.display = 'block';
-        btn.textContent = 'Hide Comments';
+        btn.innerHTML = `💬 Hide Comments (${count})`;
         await loadComments(mealId);
     } else {
         commentsSection.style.display = 'none';
-        btn.textContent = 'Show Comments';
+        btn.innerHTML = `💬 Show Comments (${count})`;
     }
 }
 
@@ -458,6 +462,22 @@ async function handleDeleteMealComment(commentId, mealId) {
             commentEl.remove();
         }
 
+        // Update comment count in currentMeals array
+        const mealIndex = currentMeals.findIndex(m => String(m.id) === String(mealId));
+        if (mealIndex !== -1 && currentMeals[mealIndex].comment_count > 0) {
+            currentMeals[mealIndex].comment_count--;
+
+            // Update button text
+            const btn = document.querySelector(`.toggle-comments-btn[data-meal-id="${mealId}"]`);
+            const commentsSection = document.getElementById(`comments-${mealId}`);
+            if (btn) {
+                const count = currentMeals[mealIndex].comment_count;
+                const isHidden = commentsSection.style.display === 'none';
+                const text = isHidden ? 'Show Comments' : 'Hide Comments';
+                btn.innerHTML = `💬 ${text} (${count})`;
+            }
+        }
+
         // Check if comments list is empty
         const commentsList = document.getElementById(`comments-list-${mealId}`);
         if (commentsList && commentsList.children.length === 0) {
@@ -531,6 +551,19 @@ async function handleReplySubmit(e, parentCommentId, mealId) {
         form.reset();
         handleCancelReply(parentCommentId);
 
+        // Update comment count (replies also count as comments)
+        const mealIndex = currentMeals.findIndex(m => String(m.id) === String(mealId));
+        if (mealIndex !== -1) {
+            currentMeals[mealIndex].comment_count = (currentMeals[mealIndex].comment_count || 0) + 1;
+
+            // Update button text
+            const btn = document.querySelector(`.toggle-comments-btn[data-meal-id="${mealId}"]`);
+            if (btn) {
+                const count = currentMeals[mealIndex].comment_count;
+                btn.innerHTML = `💬 Hide Comments (${count})`;
+            }
+        }
+
         // Reload comments
         await loadComments(mealId);
 
@@ -576,6 +609,19 @@ async function handleCommentSubmit(e) {
 
         // Clear form
         form.reset();
+
+        // Update comment count in currentMeals array
+        const mealIndex = currentMeals.findIndex(m => String(m.id) === String(mealId));
+        if (mealIndex !== -1) {
+            currentMeals[mealIndex].comment_count = (currentMeals[mealIndex].comment_count || 0) + 1;
+
+            // Update button text
+            const btn = document.querySelector(`.toggle-comments-btn[data-meal-id="${mealId}"]`);
+            if (btn) {
+                const count = currentMeals[mealIndex].comment_count;
+                btn.innerHTML = `💬 Hide Comments (${count})`;
+            }
+        }
 
         // Reload comments
         await loadComments(mealId);
