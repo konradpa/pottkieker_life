@@ -29,8 +29,8 @@ const NOTE_LABELS = [
     patterns: [/\bschwein\b/i, /\bschweinefleisch\b/i]
   },
   {
-    label: 'Hühnerfleisch',
-    patterns: [/\bhuhn\b/i, /\bhähnchen\b/i, /\bhaehnchen\b/i, /\bhähnchenfleisch\b/i, /\bhaehnchenfleisch\b/i, /\bgeflügel\b/i, /\bgefluegel\b/i, /\bpute\b/i]
+    label: 'Geflügel',
+    patterns: [/\bhuhn\b/i, /\bhähnchen\b/i, /\bhaehnchen\b/i, /\bhähnchenfleisch\b/i, /\bhaehnchenfleisch\b/i, /\bgeflügel\b/i, /\bgefluegel\b/i, /\bpute\b/i, /\bputenfleisch\b/i, /\bhühnchen\b/i, /\bhuehnchen\b/i]
   },
   {
     label: 'Laktosefrei',
