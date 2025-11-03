@@ -375,6 +375,60 @@ async function loadComments(photoId) {
     }
 }
 
+// Organize comments into hierarchy (recursive nesting)
+function organizePhotoComments(comments) {
+    // Create a map for quick lookup
+    const commentMap = new Map();
+    comments.forEach(comment => {
+        commentMap.set(comment.id, { ...comment, replies: [] });
+    });
+
+    // Build the tree structure
+    const topLevel = [];
+    commentMap.forEach(comment => {
+        if (comment.parent_comment_id) {
+            const parent = commentMap.get(comment.parent_comment_id);
+            if (parent) {
+                parent.replies.push(comment);
+            }
+        } else {
+            topLevel.push(comment);
+        }
+    });
+
+    return topLevel;
+}
+
+// Recursive function to render a single comment and its replies
+function renderPhotoComment(comment, photoId) {
+    return `
+        <div class="comment ${comment.parent_comment_id ? 'comment-reply' : ''}" data-comment-id="${comment.id}">
+            <div class="comment-header">
+                <span class="comment-author">${escapeHtml(comment.author_name)}</span>
+                <span class="comment-time">${formatTime(comment.created_at)}</span>
+                ${comment.is_owner ? `<button class="delete-comment-btn" onclick="handleDeleteComment(${comment.id}, ${photoId})" title="Delete comment">×</button>` : ''}
+            </div>
+            <div class="comment-text">${escapeHtml(comment.comment_text)}</div>
+            <button class="reply-btn" onclick="handleShowPhotoReplyForm(${comment.id}, ${photoId})">Reply</button>
+            <div class="reply-form-container" id="photo-reply-form-${comment.id}" style="display: none;">
+                <form class="comment-form reply-form" onsubmit="handlePhotoReplySubmit(event, ${comment.id}, ${photoId})">
+                    <input type="text" name="author_name" placeholder="Your name" maxlength="50" required>
+                    <textarea name="comment_text" placeholder="Your reply..." maxlength="500" required></textarea>
+                    <div class="reply-form-actions">
+                        <button type="submit">Post Reply</button>
+                        <button type="button" onclick="handleCancelPhotoReply(${comment.id})">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            ${comment.replies && comment.replies.length > 0 ? `
+                <div class="comment-replies">
+                    ${comment.replies.map(reply => renderPhotoComment(reply, photoId)).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
 // Render comments
 function renderComments(photoId, comments) {
     const commentsList = document.getElementById(`comments-list-${photoId}`);
@@ -384,16 +438,9 @@ function renderComments(photoId, comments) {
         return;
     }
 
-    commentsList.innerHTML = comments.map(comment => `
-        <div class="comment-item" data-comment-id="${comment.id}">
-            <div class="comment-header">
-                <span class="comment-author">${escapeHtml(comment.author_name)}</span>
-                <span class="comment-time">${formatTime(comment.created_at)}</span>
-                ${comment.is_owner ? `<button class="delete-comment-btn" onclick="handleDeleteComment(${comment.id}, ${photoId})" title="Delete comment">×</button>` : ''}
-            </div>
-            <div class="comment-text">${escapeHtml(comment.comment_text)}</div>
-        </div>
-    `).join('');
+    const organizedComments = organizePhotoComments(comments);
+    const html = organizedComments.map(comment => renderPhotoComment(comment, photoId)).join('');
+    commentsList.innerHTML = html;
 }
 
 // Handle add comment
@@ -487,6 +534,86 @@ async function handleDeleteComment(commentId, photoId) {
         showError(error.message);
     }
 }
+
+// Show reply form
+function handleShowPhotoReplyForm(commentId, photoId) {
+    const replyFormContainer = document.getElementById(`photo-reply-form-${commentId}`);
+    if (replyFormContainer) {
+        replyFormContainer.style.display = 'block';
+        // Focus on the name input
+        const nameInput = replyFormContainer.querySelector('[name="author_name"]');
+        if (nameInput) nameInput.focus();
+    }
+}
+
+// Cancel reply
+function handleCancelPhotoReply(commentId) {
+    const replyFormContainer = document.getElementById(`photo-reply-form-${commentId}`);
+    if (replyFormContainer) {
+        replyFormContainer.style.display = 'none';
+        // Clear the form
+        const form = replyFormContainer.querySelector('form');
+        if (form) form.reset();
+    }
+}
+
+// Handle reply submission
+async function handlePhotoReplySubmit(e, parentCommentId, photoId) {
+    e.preventDefault();
+
+    const form = e.target;
+    const author_name = form.querySelector('[name="author_name"]').value;
+    const comment_text = form.querySelector('[name="comment_text"]').value;
+
+    try {
+        const response = await fetch(`/api/photos/${photoId}/comments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                author_name,
+                comment_text,
+                parent_comment_id: parentCommentId
+            })
+        });
+
+        let responseData = {};
+        try {
+            responseData = await response.json();
+        } catch (parseError) {
+            responseData = {};
+        }
+
+        if (!response.ok) {
+            throw new Error(responseData.error || 'Failed to post reply');
+        }
+
+        // Clear form and hide
+        form.reset();
+        handleCancelPhotoReply(parentCommentId);
+
+        // Update comment count (replies also count as comments)
+        const card = document.querySelector(`[data-photo-id="${photoId}"]`);
+        const photo = currentPhotos.find(p => p.id === photoId);
+        if (photo) {
+            photo.comment_count++;
+            const commentsBtn = card.querySelector('.comments-toggle-btn');
+            commentsBtn.innerHTML = `💬 ${photo.comment_count}`;
+        }
+
+        // Reload comments
+        loadComments(photoId);
+
+    } catch (error) {
+        showError(error.message || 'Failed to post reply. Please try again.');
+    }
+}
+
+// Expose functions to global scope for onclick handlers
+window.handleShowPhotoReplyForm = handleShowPhotoReplyForm;
+window.handleCancelPhotoReply = handleCancelPhotoReply;
+window.handlePhotoReplySubmit = handlePhotoReplySubmit;
 
 // Open photo in image viewer
 function openPhotoInViewer(photoId) {

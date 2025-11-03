@@ -378,30 +378,34 @@ async function loadComments(mealId) {
     }
 }
 
-// Organize comments into hierarchy (top-level + replies)
+// Organize comments into hierarchy (recursive nesting)
 function organizeComments(comments) {
-    const topLevel = comments.filter(c => !c.parent_comment_id);
-    const replies = comments.filter(c => c.parent_comment_id);
+    // Create a map for quick lookup
+    const commentMap = new Map();
+    comments.forEach(comment => {
+        commentMap.set(comment.id, { ...comment, replies: [] });
+    });
 
-    return topLevel.map(comment => ({
-        ...comment,
-        replies: replies.filter(r => r.parent_comment_id === comment.id)
-    }));
+    // Build the tree structure
+    const topLevel = [];
+    commentMap.forEach(comment => {
+        if (comment.parent_comment_id) {
+            const parent = commentMap.get(comment.parent_comment_id);
+            if (parent) {
+                parent.replies.push(comment);
+            }
+        } else {
+            topLevel.push(comment);
+        }
+    });
+
+    return topLevel;
 }
 
-// Display comments
-function displayComments(mealId, comments) {
-    const commentsList = document.getElementById(`comments-list-${mealId}`);
-
-    if (!comments || comments.length === 0) {
-        commentsList.innerHTML = '<p style="color: #999; font-size: 0.9em;">No comments yet. Be the first to comment!</p>';
-        return;
-    }
-
-    const organizedComments = organizeComments(comments);
-
-    const html = organizedComments.map(comment => `
-        <div class="comment" data-comment-id="${comment.id}">
+// Recursive function to render a single comment and its replies
+function renderComment(comment, mealId) {
+    return `
+        <div class="comment ${comment.parent_comment_id ? 'comment-reply' : ''}" data-comment-id="${comment.id}">
             <div class="comment-header">
                 <span class="comment-author">${escapeHtml(comment.author_name)}</span>
                 <span class="comment-time">${formatTime(comment.timestamp)}</span>
@@ -421,21 +425,24 @@ function displayComments(mealId, comments) {
             </div>
             ${comment.replies && comment.replies.length > 0 ? `
                 <div class="comment-replies">
-                    ${comment.replies.map(reply => `
-                        <div class="comment comment-reply" data-comment-id="${reply.id}">
-                            <div class="comment-header">
-                                <span class="comment-author">${escapeHtml(reply.author_name)}</span>
-                                <span class="comment-time">${formatTime(reply.timestamp)}</span>
-                                ${reply.is_owner ? `<button class="delete-comment-btn" onclick="handleDeleteMealComment(${reply.id}, ${mealId})" title="Delete comment">×</button>` : ''}
-                            </div>
-                            <div class="comment-text">${escapeHtml(reply.comment_text)}</div>
-                        </div>
-                    `).join('')}
+                    ${comment.replies.map(reply => renderComment(reply, mealId)).join('')}
                 </div>
             ` : ''}
         </div>
-    `).join('');
+    `;
+}
 
+// Display comments
+function displayComments(mealId, comments) {
+    const commentsList = document.getElementById(`comments-list-${mealId}`);
+
+    if (!comments || comments.length === 0) {
+        commentsList.innerHTML = '<p style="color: #999; font-size: 0.9em;">No comments yet. Be the first to comment!</p>';
+        return;
+    }
+
+    const organizedComments = organizeComments(comments);
+    const html = organizedComments.map(comment => renderComment(comment, mealId)).join('');
     commentsList.innerHTML = html;
 }
 

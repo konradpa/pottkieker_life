@@ -544,10 +544,9 @@ router.post('/:photoId/comments', express.json(), (req, res) => {
     }
 
     // If parent_comment_id is provided, validate it exists and belongs to same photo
-    // Also ensure it's not a reply itself (1-level deep only)
     if (parent_comment_id) {
       db.get(
-        'SELECT id, parent_comment_id FROM photo_comments WHERE id = ? AND photo_id = ?',
+        'SELECT id FROM photo_comments WHERE id = ? AND photo_id = ?',
         [parent_comment_id, photoId],
         (err, parentComment) => {
           if (err) {
@@ -557,10 +556,6 @@ router.post('/:photoId/comments', express.json(), (req, res) => {
 
           if (!parentComment) {
             return res.status(404).json({ error: 'Parent comment not found' });
-          }
-
-          if (parentComment.parent_comment_id !== null) {
-            return res.status(400).json({ error: 'Cannot reply to a reply (only 1 level allowed)' });
           }
 
           proceedWithCommentCreation();
