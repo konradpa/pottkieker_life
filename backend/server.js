@@ -20,6 +20,7 @@ const { initPhotoCleanupScheduler } = require('./utils/photoCleanup');
 initPhotoCleanupScheduler();
 
 const app = express();
+app.set('trust proxy', true); // ✅ This line fixes IP detection through Nginx
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
