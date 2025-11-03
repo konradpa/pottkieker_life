@@ -11,6 +11,7 @@ let currentLocation = 'studierendenhaus';
 let currentSort = 'upvotes';
 let currentMeals = [];
 let emptyMealsMessage = 'No meals available for today.';
+let selectedTag = null; // Track the currently selected tag filter
 
 // DOM Elements
 const locationSelect = document.getElementById('location-select');
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (locationSelect) {
         locationSelect.addEventListener('change', (e) => {
             currentLocation = e.target.value;
+            selectedTag = null; // Clear tag filter when changing location
             updateOpeningTimes(currentLocation);
             loadMeals();
         });
@@ -154,7 +156,27 @@ function renderMeals() {
         return;
     }
 
-    const sortedMeals = sortMeals(currentMeals, currentSort);
+    // Filter meals by selected tag if active
+    let mealsToDisplay = currentMeals;
+    if (selectedTag) {
+        mealsToDisplay = currentMeals.filter(meal => {
+            if (!meal.notes) return false;
+            const tags = meal.notes.split(',').map(t => t.trim());
+            return tags.includes(selectedTag);
+        });
+    }
+
+    // Show appropriate message if no meals match the filter
+    if (mealsToDisplay.length === 0 && selectedTag) {
+        mealsContainer.innerHTML = `
+            <div class="meal-card">
+                <p>No meals found with tag "${escapeHtml(selectedTag)}" for this location.</p>
+                <button onclick="clearTagFilter()" style="margin-top: 10px; padding: 8px 16px; cursor: pointer;">Clear filter</button>
+            </div>`;
+        return;
+    }
+
+    const sortedMeals = sortMeals(mealsToDisplay, currentSort);
     mealsContainer.innerHTML = sortedMeals.map(meal => createMealCard(meal)).join('');
     attachEventListeners();
 }
@@ -179,6 +201,15 @@ function createMealCard(meal) {
         ? `${meal.category}: ${meal.name}`
         : meal.name;
 
+    // Convert notes into clickable tags
+    const tagsHTML = meal.notes
+        ? meal.notes.split(',').map(tag => {
+            const trimmedTag = tag.trim();
+            const isActive = selectedTag === trimmedTag;
+            return `<span class="meal-tag ${isActive ? 'active' : ''}" onclick="handleTagClick('${escapeHtml(trimmedTag).replace(/'/g, '&#39;')}')">${escapeHtml(trimmedTag)}</span>`;
+        }).join('')
+        : '';
+
     // Photo gallery HTML (only if photos exist)
     const photoCount = meal.photos?.count || 0;
     const photoThumbnails = meal.photos?.thumbnails || [];
@@ -201,7 +232,7 @@ function createMealCard(meal) {
                 <div class="meal-info">
                     ${showLocation && locationLabel ? `<div class="meal-location" data-location="${meal.mensa_location || ''}">${escapeHtml(locationLabel)}</div>` : ''}
                     <div class="meal-name">${escapeHtml(displayName)}</div>
-                    ${meal.notes ? `<div class="meal-notes">${escapeHtml(meal.notes)}</div>` : ''}
+                    ${tagsHTML ? `<div class="meal-tags">${tagsHTML}</div>` : ''}
                     ${priceInfo.display ? `<div class="meal-price">${escapeHtml(priceInfo.display)}</div>` : ''}
                 </div>
                 <div class="vote-section">
@@ -915,3 +946,24 @@ function formatTime(timestamp) {
 
     return date.toLocaleDateString();
 }
+
+// Tag filtering functionality
+function handleTagClick(tag) {
+    if (selectedTag === tag) {
+        // Clicking the same tag again clears the filter
+        selectedTag = null;
+    } else {
+        // Set the new tag filter
+        selectedTag = tag;
+    }
+    renderMeals();
+}
+
+function clearTagFilter() {
+    selectedTag = null;
+    renderMeals();
+}
+
+// Expose functions to global scope
+window.handleTagClick = handleTagClick;
+window.clearTagFilter = clearTagFilter;

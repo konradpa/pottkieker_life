@@ -454,6 +454,45 @@ h1 {
     letter-spacing: var(--track-tight);
 }
 
+/* Clickable tags */
+.meal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.meal-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: var(--size-xs);
+    background: rgba(97, 175, 239, 0.15);
+    color: var(--accent-2);
+    border: 1px solid var(--accent);
+    border-radius: var(--br);
+    cursor: pointer;
+    transition: all var(--t-fast);
+    letter-spacing: var(--track-tight);
+    text-transform: lowercase;
+    font-weight: 500;
+}
+
+.meal-tag:hover {
+    background: rgba(97, 175, 239, 0.3);
+    color: var(--accent-bright);
+    border-color: var(--accent-bright);
+    box-shadow: var(--shadow-accent);
+    transform: translateY(-1px);
+}
+
+.meal-tag.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #1e1e2e;
+    border-color: var(--accent-bright);
+    box-shadow: var(--shadow-accent);
+    font-weight: 700;
+}
+
 .meal-price {
     font-size: var(--size-s);
     color: var(--warm-2);
