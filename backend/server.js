@@ -11,6 +11,7 @@ const portionsRouter = require('./routes/portions');
 const commentsRouter = require('./routes/comments');
 const photosRouter = require('./routes/photos');
 const adminRouter = require('./routes/admin');
+const { ownershipTokenMiddleware } = require('./middleware/ownershipToken');
 
 // Initialize database
 require('./database');
@@ -42,6 +43,7 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(ownershipTokenMiddleware);
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
