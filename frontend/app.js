@@ -374,6 +374,17 @@ async function loadComments(mealId) {
     }
 }
 
+// Organize comments into hierarchy (top-level + replies)
+function organizeComments(comments) {
+    const topLevel = comments.filter(c => !c.parent_comment_id);
+    const replies = comments.filter(c => c.parent_comment_id);
+
+    return topLevel.map(comment => ({
+        ...comment,
+        replies: replies.filter(r => r.parent_comment_id === comment.id)
+    }));
+}
+
 // Display comments
 function displayComments(mealId, comments) {
     const commentsList = document.getElementById(`comments-list-${mealId}`);
@@ -383,14 +394,41 @@ function displayComments(mealId, comments) {
         return;
     }
 
-    const html = comments.map(comment => `
+    const organizedComments = organizeComments(comments);
+
+    const html = organizedComments.map(comment => `
         <div class="comment" data-comment-id="${comment.id}">
             <div class="comment-header">
                 <span class="comment-author">${escapeHtml(comment.author_name)}</span>
                 <span class="comment-time">${formatTime(comment.timestamp)}</span>
-                <button class="delete-comment-btn" onclick="handleDeleteMealComment(${comment.id}, ${mealId})" title="Delete comment">×</button>
+                ${comment.is_owner ? `<button class="delete-comment-btn" onclick="handleDeleteMealComment(${comment.id}, ${mealId})" title="Delete comment">×</button>` : ''}
             </div>
             <div class="comment-text">${escapeHtml(comment.comment_text)}</div>
+            <button class="reply-btn" onclick="handleShowReplyForm(${comment.id}, ${mealId})">Reply</button>
+            <div class="reply-form-container" id="reply-form-${comment.id}" style="display: none;">
+                <form class="comment-form reply-form" onsubmit="handleReplySubmit(event, ${comment.id}, ${mealId})">
+                    <input type="text" name="author_name" placeholder="Your name" maxlength="50" required>
+                    <textarea name="comment_text" placeholder="Your reply..." maxlength="500" required></textarea>
+                    <div class="reply-form-actions">
+                        <button type="submit">Post Reply</button>
+                        <button type="button" onclick="handleCancelReply(${comment.id})">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            ${comment.replies && comment.replies.length > 0 ? `
+                <div class="comment-replies">
+                    ${comment.replies.map(reply => `
+                        <div class="comment comment-reply" data-comment-id="${reply.id}">
+                            <div class="comment-header">
+                                <span class="comment-author">${escapeHtml(reply.author_name)}</span>
+                                <span class="comment-time">${formatTime(reply.timestamp)}</span>
+                                ${reply.is_owner ? `<button class="delete-comment-btn" onclick="handleDeleteMealComment(${reply.id}, ${mealId})" title="Delete comment">×</button>` : ''}
+                            </div>
+                            <div class="comment-text">${escapeHtml(reply.comment_text)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
         </div>
     `).join('');
 
@@ -434,6 +472,78 @@ async function handleDeleteMealComment(commentId, mealId) {
 
 // Expose function to global scope for onclick
 window.handleDeleteMealComment = handleDeleteMealComment;
+
+// Show reply form
+function handleShowReplyForm(commentId, mealId) {
+    const replyFormContainer = document.getElementById(`reply-form-${commentId}`);
+    if (replyFormContainer) {
+        replyFormContainer.style.display = 'block';
+        // Focus on the name input
+        const nameInput = replyFormContainer.querySelector('[name="author_name"]');
+        if (nameInput) nameInput.focus();
+    }
+}
+
+// Cancel reply
+function handleCancelReply(commentId) {
+    const replyFormContainer = document.getElementById(`reply-form-${commentId}`);
+    if (replyFormContainer) {
+        replyFormContainer.style.display = 'none';
+        // Clear the form
+        const form = replyFormContainer.querySelector('form');
+        if (form) form.reset();
+    }
+}
+
+// Handle reply submission
+async function handleReplySubmit(e, parentCommentId, mealId) {
+    e.preventDefault();
+
+    const form = e.target;
+    const author_name = form.querySelector('[name="author_name"]').value;
+    const comment_text = form.querySelector('[name="comment_text"]').value;
+
+    try {
+        const response = await fetch(`${API_BASE}/comments/${mealId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                author_name,
+                comment_text,
+                parent_comment_id: parentCommentId
+            })
+        });
+
+        let responseData = {};
+        try {
+            responseData = await response.json();
+        } catch (parseError) {
+            responseData = {};
+        }
+
+        if (!response.ok) {
+            throw new Error(responseData.error || 'Failed to post reply');
+        }
+
+        // Clear form and hide
+        form.reset();
+        handleCancelReply(parentCommentId);
+
+        // Reload comments
+        await loadComments(mealId);
+
+    } catch (error) {
+        console.error('Error posting reply:', error);
+        showError(error.message || 'Failed to post reply. Please try again.');
+    }
+}
+
+// Expose functions to global scope
+window.handleShowReplyForm = handleShowReplyForm;
+window.handleCancelReply = handleCancelReply;
+window.handleReplySubmit = handleReplySubmit;
 
 // Handle comment submission
 async function handleCommentSubmit(e) {

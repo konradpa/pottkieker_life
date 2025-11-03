@@ -11,7 +11,7 @@ router.get('/:mealId', (req, res) => {
   const { mealId } = req.params;
 
   db.all(
-    `SELECT id, author_name, comment_text, timestamp
+    `SELECT id, author_name, comment_text, timestamp, owner_token_hash
      FROM comments
      WHERE meal_id = ?
      ORDER BY timestamp DESC`,
@@ -26,7 +26,8 @@ router.get('/:mealId', (req, res) => {
         id: row.id,
         author_name: row.author_name,
         comment_text: row.comment_text,
-        timestamp: row.timestamp
+        timestamp: row.timestamp,
+        is_owner: !!(row.owner_token_hash && row.owner_token_hash === req.ownerTokenHash)
       }));
 
       res.json({ comments });
@@ -45,6 +46,7 @@ router.post('/:mealId', express.json(), (req, res) => {
   const { mealId } = req.params;
   const { author_name, comment_text } = req.body;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
+  const owner_token_hash = req.ownerTokenHash;
 
   // Validate input
   if (!author_name || !comment_text) {
@@ -94,9 +96,9 @@ router.post('/:mealId', express.json(), (req, res) => {
 
         // Insert comment
         db.run(
-          `INSERT INTO comments (meal_id, author_name, comment_text, ip_address)
-           VALUES (?, ?, ?, ?)`,
-          [mealId, sanitizedName, sanitizedComment, ip_address],
+          `INSERT INTO comments (meal_id, author_name, comment_text, ip_address, owner_token_hash)
+           VALUES (?, ?, ?, ?, ?)`,
+          [mealId, sanitizedName, sanitizedComment, ip_address, owner_token_hash],
           function(err) {
             if (err) {
               console.error('Insert comment error:', err);
@@ -109,7 +111,8 @@ router.post('/:mealId', express.json(), (req, res) => {
                 id: this.lastID,
                 author_name: sanitizedName,
                 comment_text: sanitizedComment,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                is_owner: true
               }
             });
           }
@@ -121,15 +124,21 @@ router.post('/:mealId', express.json(), (req, res) => {
 
 /**
  * DELETE /api/comments/:commentId
- * Delete a comment (IP-based authorization)
+ * Delete a comment (token/IP-based authorization)
  */
 router.delete('/:commentId', (req, res) => {
   const { commentId } = req.params;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
+  const owner_token_hash = req.ownerTokenHash;
 
   db.run(
-    'DELETE FROM comments WHERE id = ? AND ip_address = ?',
-    [commentId, ip_address],
+    `DELETE FROM comments
+     WHERE id = ?
+       AND (
+         owner_token_hash = ?
+         OR (owner_token_hash IS NULL AND ip_address = ?)
+       )`,
+    [commentId, owner_token_hash, ip_address],
     function(err) {
       if (err) {
         console.error('Delete comment error:', err);

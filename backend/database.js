@@ -57,6 +57,7 @@ db.serialize(() => {
       author_name TEXT NOT NULL,
       comment_text TEXT NOT NULL,
       ip_address TEXT NOT NULL,
+      owner_token_hash TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE
     )
@@ -71,6 +72,7 @@ db.serialize(() => {
       author_name TEXT NOT NULL,
       caption TEXT,
       ip_address TEXT NOT NULL,
+      owner_token_hash TEXT,
       upload_date DATE NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE
@@ -97,12 +99,42 @@ db.serialize(() => {
       author_name TEXT NOT NULL,
       comment_text TEXT NOT NULL,
       ip_address TEXT NOT NULL,
+      owner_token_hash TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (photo_id) REFERENCES food_photos(id) ON DELETE CASCADE
     )
   `);
 
   console.log('Database tables initialized');
+
+  // Ensure ownership columns exist (for pre-existing databases).
+  const migrations = [
+    { table: 'comments', column: 'owner_token_hash', definition: 'ALTER TABLE comments ADD COLUMN owner_token_hash TEXT' },
+    { table: 'photo_comments', column: 'owner_token_hash', definition: 'ALTER TABLE photo_comments ADD COLUMN owner_token_hash TEXT' },
+    { table: 'food_photos', column: 'owner_token_hash', definition: 'ALTER TABLE food_photos ADD COLUMN owner_token_hash TEXT' },
+    { table: 'comments', column: 'parent_comment_id', definition: 'ALTER TABLE comments ADD COLUMN parent_comment_id INTEGER DEFAULT NULL REFERENCES comments(id) ON DELETE CASCADE' },
+    { table: 'photo_comments', column: 'parent_comment_id', definition: 'ALTER TABLE photo_comments ADD COLUMN parent_comment_id INTEGER DEFAULT NULL REFERENCES photo_comments(id) ON DELETE CASCADE' }
+  ];
+
+  migrations.forEach(({ table, column, definition }) => {
+    db.all(`PRAGMA table_info(${table})`, (err, rows) => {
+      if (err) {
+        console.error(`Failed to inspect ${table} table:`, err);
+        return;
+      }
+
+      const hasColumn = Array.isArray(rows) && rows.some((schemaRow) => schemaRow.name === column);
+      if (!hasColumn) {
+        db.run(definition, (alterErr) => {
+          if (alterErr) {
+            console.error(`Failed to add ${column} to ${table}:`, alterErr);
+          } else {
+            console.log(`Added ${column} column to ${table} table`);
+          }
+        });
+      }
+    });
+  });
 });
 
 module.exports = db;

@@ -235,11 +235,14 @@ function createPhotoCard(photo) {
     card.dataset.photoId = photo.id;
 
     const isVoted = votedPhotos.has(photo.id);
+    const deleteButton = photo.is_owner
+        ? `<button class="delete-photo-btn" onclick="handleDeletePhoto(${photo.id})" title="Delete photo">×</button>`
+        : '';
 
     card.innerHTML = `
         <div class="photo-image-container">
             <img src="${photo.photo_url}" alt="${photo.meal_name}" class="photo-image" onclick="openPhotoInViewer(${photo.id})">
-            <button class="delete-photo-btn" onclick="handleDeletePhoto(${photo.id})" title="Delete photo">×</button>
+            ${deleteButton}
         </div>
         <div class="photo-info">
             <div class="photo-meal-name">${escapeHtml(photo.meal_name)}</div>
@@ -386,7 +389,7 @@ function renderComments(photoId, comments) {
             <div class="comment-header">
                 <span class="comment-author">${escapeHtml(comment.author_name)}</span>
                 <span class="comment-time">${formatTime(comment.created_at)}</span>
-                <button class="delete-comment-btn" onclick="handleDeleteComment(${comment.id}, ${photoId})" title="Delete comment">×</button>
+                ${comment.is_owner ? `<button class="delete-comment-btn" onclick="handleDeleteComment(${comment.id}, ${photoId})" title="Delete comment">×</button>` : ''}
             </div>
             <div class="comment-text">${escapeHtml(comment.comment_text)}</div>
         </div>

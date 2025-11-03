@@ -597,6 +597,107 @@
     letter-spacing: 0.5px;
 }
 
+/* Reply Button and Forms */
+.reply-btn {
+    background: transparent;
+    border: none;
+    color: var(--accent-2);
+    cursor: pointer;
+    font-size: 10px;
+    padding: 4px 0;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+    transition: color var(--t-fast);
+    font-family: inherit;
+    text-decoration: underline;
+}
+
+.reply-btn:hover {
+    color: var(--accent-bright);
+}
+
+.reply-form-container {
+    margin-top: 8px;
+    padding-left: 16px;
+    border-left: 2px solid rgba(97, 175, 239, 0.3);
+}
+
+.comment-form-inline {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.reply-form {
+    background-color: rgba(26, 27, 38, 0.5);
+    padding: 8px;
+    border-radius: var(--br);
+}
+
+.reply-form input,
+.reply-form textarea {
+    font-size: 10px;
+    padding: 6px 8px;
+    border: var(--bw) solid var(--accent-2);
+    border-radius: var(--br);
+    font-family: inherit;
+    background: var(--bg-4);
+    color: var(--text);
+    transition: all var(--t-fast);
+}
+
+.reply-form input:focus,
+.reply-form textarea:focus {
+    outline: none;
+    border-color: var(--accent-3);
+    box-shadow: var(--shadow-accent);
+}
+
+.reply-form textarea {
+    min-height: 50px;
+    resize: vertical;
+}
+
+.reply-form-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.reply-form-actions button {
+    padding: 6px 12px;
+    font-size: 10px;
+    border: var(--bw) solid var(--accent);
+    border-radius: var(--br);
+    background: var(--bg-4);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all var(--t-fast);
+    font-family: inherit;
+}
+
+.reply-form-actions button:hover {
+    background: var(--accent);
+    color: var(--bg-1);
+    box-shadow: var(--shadow-accent);
+}
+
+.comment-replies {
+    margin-top: 8px;
+    margin-left: 20px;
+    padding-left: 12px;
+    border-left: 2px solid rgba(97, 175, 239, 0.2);
+}
+
+.comment-reply {
+    background-color: rgba(30, 30, 46, 0.6);
+    border-left-color: rgba(97, 175, 239, 0.4);
+    margin-bottom: 6px;
+}
+
+.comment-reply .comment-author {
+    color: var(--cyan);
+}
+
 .hud-toast {
     position: fixed;
     top: 20px;
