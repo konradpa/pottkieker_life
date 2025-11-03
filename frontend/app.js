@@ -153,8 +153,12 @@ function displayMeals(meals, message) {
 function renderMeals() {
     if (!currentMeals.length) {
         mealsContainer.innerHTML = `<div class="meal-card"><p>${escapeHtml(emptyMealsMessage)}</p></div>`;
+        updateTagFilterBar();
         return;
     }
+
+    // Update the tag filter bar with available tags
+    updateTagFilterBar();
 
     // Filter meals by selected tag if active
     let mealsToDisplay = currentMeals;
@@ -201,15 +205,6 @@ function createMealCard(meal) {
         ? `${meal.category}: ${meal.name}`
         : meal.name;
 
-    // Convert notes into clickable tags
-    const tagsHTML = meal.notes
-        ? meal.notes.split(',').map(tag => {
-            const trimmedTag = tag.trim();
-            const isActive = selectedTag === trimmedTag;
-            return `<span class="meal-tag ${isActive ? 'active' : ''}" onclick="handleTagClick('${escapeHtml(trimmedTag).replace(/'/g, '&#39;')}')">${escapeHtml(trimmedTag)}</span>`;
-        }).join('')
-        : '';
-
     // Photo gallery HTML (only if photos exist)
     const photoCount = meal.photos?.count || 0;
     const photoThumbnails = meal.photos?.thumbnails || [];
@@ -232,7 +227,7 @@ function createMealCard(meal) {
                 <div class="meal-info">
                     ${showLocation && locationLabel ? `<div class="meal-location" data-location="${meal.mensa_location || ''}">${escapeHtml(locationLabel)}</div>` : ''}
                     <div class="meal-name">${escapeHtml(displayName)}</div>
-                    ${tagsHTML ? `<div class="meal-tags">${tagsHTML}</div>` : ''}
+                    ${meal.notes ? `<div class="meal-notes">${escapeHtml(meal.notes)}</div>` : ''}
                     ${priceInfo.display ? `<div class="meal-price">${escapeHtml(priceInfo.display)}</div>` : ''}
                 </div>
                 <div class="vote-section">
@@ -948,6 +943,44 @@ function formatTime(timestamp) {
 }
 
 // Tag filtering functionality
+function updateTagFilterBar() {
+    const tagFilterBar = document.getElementById('tag-filter-bar');
+    const tagFilterList = document.getElementById('tag-filter-list');
+
+    if (!tagFilterBar || !tagFilterList) return;
+
+    // Extract all unique tags from current meals
+    const allTags = new Set();
+    currentMeals.forEach(meal => {
+        if (meal.notes) {
+            const tags = meal.notes.split(',').map(t => t.trim());
+            tags.forEach(tag => {
+                if (tag) allTags.add(tag);
+            });
+        }
+    });
+
+    // If no tags available, hide the filter bar
+    if (allTags.size === 0) {
+        tagFilterBar.style.display = 'none';
+        return;
+    }
+
+    // Show the filter bar and populate with tags
+    tagFilterBar.style.display = 'flex';
+
+    // Sort tags alphabetically
+    const sortedTags = Array.from(allTags).sort((a, b) =>
+        a.toLowerCase().localeCompare(b.toLowerCase())
+    );
+
+    // Create clickable tag elements
+    tagFilterList.innerHTML = sortedTags.map(tag => {
+        const isActive = selectedTag === tag;
+        return `<span class="filter-tag ${isActive ? 'active' : ''}" onclick="handleTagClick('${escapeHtml(tag).replace(/'/g, '&#39;')}')">${escapeHtml(tag)}</span>`;
+    }).join('');
+}
+
 function handleTagClick(tag) {
     if (selectedTag === tag) {
         // Clicking the same tag again clears the filter
