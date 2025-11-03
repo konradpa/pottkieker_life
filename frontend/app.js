@@ -160,14 +160,14 @@ function renderMeals() {
     // Update the tag filter bar with available tags
     updateTagFilterBar();
 
-    // Filter meals by selected tags if active (meals must have ALL selected tags)
+    // Filter meals by selected tags if active (meals must have AT LEAST ONE selected tag)
     let mealsToDisplay = currentMeals;
     if (selectedTags.size > 0) {
         mealsToDisplay = currentMeals.filter(meal => {
             if (!meal.notes) return false;
             const mealTags = meal.notes.split(',').map(t => t.trim());
-            // Check if meal has ALL selected tags
-            return Array.from(selectedTags).every(selectedTag =>
+            // Check if meal has ANY of the selected tags
+            return Array.from(selectedTags).some(selectedTag =>
                 mealTags.includes(selectedTag)
             );
         });
