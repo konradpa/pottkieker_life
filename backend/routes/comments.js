@@ -11,10 +11,10 @@ router.get('/:mealId', (req, res) => {
   const { mealId } = req.params;
 
   db.all(
-    `SELECT id, author_name, comment_text, timestamp, owner_token_hash
+    `SELECT id, author_name, comment_text, timestamp, owner_token_hash, parent_comment_id
      FROM comments
      WHERE meal_id = ?
-     ORDER BY timestamp DESC`,
+     ORDER BY timestamp ASC`,
     [mealId],
     (err, rows) => {
       if (err) {
@@ -27,6 +27,7 @@ router.get('/:mealId', (req, res) => {
         author_name: row.author_name,
         comment_text: row.comment_text,
         timestamp: row.timestamp,
+        parent_comment_id: row.parent_comment_id,
         is_owner: !!(row.owner_token_hash && row.owner_token_hash === req.ownerTokenHash)
       }));
 
@@ -41,10 +42,11 @@ router.get('/:mealId', (req, res) => {
  * Body: JSON with fields:
  *   author_name: string
  *   comment_text: string
+ *   parent_comment_id: number (optional, for replies)
  */
 router.post('/:mealId', express.json(), (req, res) => {
   const { mealId } = req.params;
-  const { author_name, comment_text } = req.body;
+  const { author_name, comment_text, parent_comment_id = null } = req.body;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
   const owner_token_hash = req.ownerTokenHash;
 
@@ -76,49 +78,79 @@ router.post('/:mealId', express.json(), (req, res) => {
       return res.status(404).json({ error: 'Meal not found' });
     }
 
-    // Rate limiting: check if IP has posted more than 5 comments in last 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-
-    db.get(
-      `SELECT COUNT(*) as count
-       FROM comments
-       WHERE ip_address = ? AND timestamp > ?`,
-      [ip_address, fiveMinutesAgo],
-      (err, result) => {
-        if (err) {
-          console.error('Rate limit check error:', err);
-          return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (result.count >= 5) {
-          return res.status(429).json({ error: 'Too many comments. Please wait a few minutes.' });
-        }
-
-        // Insert comment
-        db.run(
-          `INSERT INTO comments (meal_id, author_name, comment_text, ip_address, owner_token_hash)
-           VALUES (?, ?, ?, ?, ?)`,
-          [mealId, sanitizedName, sanitizedComment, ip_address, owner_token_hash],
-          function(err) {
-            if (err) {
-              console.error('Insert comment error:', err);
-              return res.status(500).json({ error: 'Failed to add comment' });
-            }
-
-            res.status(201).json({
-              success: true,
-              comment: {
-                id: this.lastID,
-                author_name: sanitizedName,
-                comment_text: sanitizedComment,
-                timestamp: new Date().toISOString(),
-                is_owner: true
-              }
-            });
+    // If parent_comment_id is provided, validate it exists and belongs to same meal
+    // Also ensure it's not a reply itself (1-level deep only)
+    if (parent_comment_id) {
+      db.get(
+        'SELECT id, parent_comment_id FROM comments WHERE id = ? AND meal_id = ?',
+        [parent_comment_id, mealId],
+        (err, parentComment) => {
+          if (err) {
+            console.error('Parent comment check error:', err);
+            return res.status(500).json({ error: 'Database error' });
           }
-        );
-      }
-    );
+
+          if (!parentComment) {
+            return res.status(404).json({ error: 'Parent comment not found' });
+          }
+
+          if (parentComment.parent_comment_id !== null) {
+            return res.status(400).json({ error: 'Cannot reply to a reply (only 1 level allowed)' });
+          }
+
+          proceedWithCommentCreation();
+        }
+      );
+    } else {
+      proceedWithCommentCreation();
+    }
+
+    function proceedWithCommentCreation() {
+      // Rate limiting: check if IP has posted more than 5 comments in last 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+      db.get(
+        `SELECT COUNT(*) as count
+         FROM comments
+         WHERE ip_address = ? AND timestamp > ?`,
+        [ip_address, fiveMinutesAgo],
+        (err, result) => {
+          if (err) {
+            console.error('Rate limit check error:', err);
+            return res.status(500).json({ error: 'Database error' });
+          }
+
+          if (result.count >= 5) {
+            return res.status(429).json({ error: 'Too many comments. Please wait a few minutes.' });
+          }
+
+          // Insert comment
+          db.run(
+            `INSERT INTO comments (meal_id, author_name, comment_text, ip_address, owner_token_hash, parent_comment_id)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [mealId, sanitizedName, sanitizedComment, ip_address, owner_token_hash, parent_comment_id],
+            function(err) {
+              if (err) {
+                console.error('Insert comment error:', err);
+                return res.status(500).json({ error: 'Failed to add comment' });
+              }
+
+              res.status(201).json({
+                success: true,
+                comment: {
+                  id: this.lastID,
+                  author_name: sanitizedName,
+                  comment_text: sanitizedComment,
+                  timestamp: new Date().toISOString(),
+                  parent_comment_id: parent_comment_id,
+                  is_owner: true
+                }
+              });
+            }
+          );
+        }
+      );
+    }
   });
 });
 

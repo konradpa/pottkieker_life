@@ -477,10 +477,10 @@ router.get('/:photoId/comments', (req, res) => {
   const { photoId } = req.params;
 
   db.all(
-    `SELECT id, author_name, comment_text, created_at, owner_token_hash
+    `SELECT id, author_name, comment_text, created_at, owner_token_hash, parent_comment_id
      FROM photo_comments
      WHERE photo_id = ?
-     ORDER BY created_at DESC`,
+     ORDER BY created_at ASC`,
     [photoId],
     (err, rows) => {
       if (err) {
@@ -493,6 +493,7 @@ router.get('/:photoId/comments', (req, res) => {
         author_name: row.author_name,
         comment_text: row.comment_text,
         created_at: row.created_at,
+        parent_comment_id: row.parent_comment_id,
         is_owner: !!(row.owner_token_hash && row.owner_token_hash === req.ownerTokenHash)
       }));
 
@@ -507,10 +508,11 @@ router.get('/:photoId/comments', (req, res) => {
  * Body: JSON with fields:
  *   author_name: string
  *   comment_text: string
+ *   parent_comment_id: number (optional, for replies)
  */
 router.post('/:photoId/comments', express.json(), (req, res) => {
-  const { photoId } = req.params;
-  const { author_name, comment_text } = req.body;
+  const { photoId} = req.params;
+  const { author_name, comment_text, parent_comment_id = null } = req.body;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   // Validate input
@@ -541,49 +543,79 @@ router.post('/:photoId/comments', express.json(), (req, res) => {
       return res.status(404).json({ error: 'Photo not found' });
     }
 
-    // Rate limiting: check if IP has posted more than 10 comments in last 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-
-    db.get(
-      `SELECT COUNT(*) as count
-       FROM photo_comments
-       WHERE ip_address = ? AND created_at > ?`,
-      [ip_address, fiveMinutesAgo],
-      (err, result) => {
-        if (err) {
-          console.error('Rate limit check error:', err);
-          return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (result.count >= 10) {
-          return res.status(429).json({ error: 'Too many comments. Please wait a few minutes.' });
-        }
-
-        // Insert comment
-        db.run(
-          `INSERT INTO photo_comments (photo_id, author_name, comment_text, ip_address, owner_token_hash)
-           VALUES (?, ?, ?, ?, ?)`,
-          [photoId, sanitizedName, sanitizedComment, ip_address, req.ownerTokenHash],
-          function(err) {
-            if (err) {
-              console.error('Insert comment error:', err);
-              return res.status(500).json({ error: 'Failed to add comment' });
-            }
-
-            res.status(201).json({
-              success: true,
-              comment: {
-                id: this.lastID,
-                author_name: sanitizedName,
-                comment_text: sanitizedComment,
-                created_at: new Date().toISOString(),
-                is_owner: true
-              }
-            });
+    // If parent_comment_id is provided, validate it exists and belongs to same photo
+    // Also ensure it's not a reply itself (1-level deep only)
+    if (parent_comment_id) {
+      db.get(
+        'SELECT id, parent_comment_id FROM photo_comments WHERE id = ? AND photo_id = ?',
+        [parent_comment_id, photoId],
+        (err, parentComment) => {
+          if (err) {
+            console.error('Parent comment check error:', err);
+            return res.status(500).json({ error: 'Database error' });
           }
-        );
-      }
-    );
+
+          if (!parentComment) {
+            return res.status(404).json({ error: 'Parent comment not found' });
+          }
+
+          if (parentComment.parent_comment_id !== null) {
+            return res.status(400).json({ error: 'Cannot reply to a reply (only 1 level allowed)' });
+          }
+
+          proceedWithCommentCreation();
+        }
+      );
+    } else {
+      proceedWithCommentCreation();
+    }
+
+    function proceedWithCommentCreation() {
+      // Rate limiting: check if IP has posted more than 10 comments in last 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+      db.get(
+        `SELECT COUNT(*) as count
+         FROM photo_comments
+         WHERE ip_address = ? AND created_at > ?`,
+        [ip_address, fiveMinutesAgo],
+        (err, result) => {
+          if (err) {
+            console.error('Rate limit check error:', err);
+            return res.status(500).json({ error: 'Database error' });
+          }
+
+          if (result.count >= 10) {
+            return res.status(429).json({ error: 'Too many comments. Please wait a few minutes.' });
+          }
+
+          // Insert comment
+          db.run(
+            `INSERT INTO photo_comments (photo_id, author_name, comment_text, ip_address, owner_token_hash, parent_comment_id)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [photoId, sanitizedName, sanitizedComment, ip_address, req.ownerTokenHash, parent_comment_id],
+            function(err) {
+              if (err) {
+                console.error('Insert comment error:', err);
+                return res.status(500).json({ error: 'Failed to add comment' });
+              }
+
+              res.status(201).json({
+                success: true,
+                comment: {
+                  id: this.lastID,
+                  author_name: sanitizedName,
+                  comment_text: sanitizedComment,
+                  created_at: new Date().toISOString(),
+                  parent_comment_id: parent_comment_id,
+                  is_owner: true
+                }
+              });
+            }
+          );
+        }
+      );
+    }
   });
 });
 
