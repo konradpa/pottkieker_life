@@ -1,5 +1,33 @@
 /* Feed-specific styles inheriting from styles.css HUD theme */
 
+/* Photo Feed Select Styling */
+#mensa-filter,
+#sort-filter {
+    flex: 1;
+    min-width: 140px;
+    padding: 8px 10px;
+    border: var(--bw) solid var(--purple);
+    border-radius: var(--br);
+    font-size: var(--size-s);
+    background: var(--bg-4);
+    color: var(--text);
+    font-family: inherit;
+    transition: all var(--t-fast);
+}
+
+#mensa-filter:hover,
+#sort-filter:hover {
+    border-color: var(--accent-2);
+    box-shadow: var(--shadow-accent);
+}
+
+#mensa-filter:focus,
+#sort-filter:focus {
+    outline: none;
+    border-color: var(--accent-2);
+    box-shadow: var(--shadow-accent);
+}
+
 /* Page Navigation */
 .page-nav {
     margin-top: 16px;

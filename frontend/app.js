@@ -7,7 +7,7 @@ const LOCATION_LABELS = {
 const ALL_LOCATIONS_KEY = 'all';
 const OPENING_TIMES_DEFAULT = 'OPENING TIMES vary by location';
 
-let currentLocation = 'studierendenhaus';
+let currentLocation = 'all';
 let currentSort = 'upvotes';
 let currentMeals = [];
 let emptyMealsMessage = 'No meals available for today.';
@@ -26,7 +26,7 @@ const subtitleEl = document.querySelector('.subtitle');
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     if (locationSelect) {
-        locationSelect.value = currentLocation;
+        currentLocation = locationSelect.value;
     }
     updateOpeningTimes(currentLocation);
     loadMeals();
