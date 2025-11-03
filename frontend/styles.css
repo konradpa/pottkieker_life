@@ -326,6 +326,27 @@ h1 {
     box-shadow: 0 0 15px rgba(241, 250, 140, 0.1);
 }
 
+/* Credit Note */
+.credit-note {
+    margin-top: 16px;
+    padding: 8px 12px;
+    text-align: center;
+    font-size: var(--size-xs);
+    color: var(--text-dim);
+    letter-spacing: var(--track-tight);
+}
+
+.credit-note a {
+    color: var(--accent-2);
+    text-decoration: none;
+    transition: color var(--t-fast);
+}
+
+.credit-note a:hover {
+    color: var(--accent-bright);
+    text-decoration: underline;
+}
+
 /* Meal Card */
 .meal-card {
     background: var(--bg-3);
