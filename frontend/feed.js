@@ -19,6 +19,7 @@ const noPhotosDiv = document.getElementById('no-photos');
 // State
 let currentPhotos = [];
 let votedPhotos = new Set();
+let isUploading = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -142,9 +143,12 @@ function handlePhotoPreview(event) {
 // Handle photo upload
 async function handlePhotoUpload(event) {
     event.preventDefault();
-    uploadErrorDiv.style.display = 'none';
 
-    const formData = new FormData(photoUploadForm);
+    if (isUploading) {
+        return;
+    }
+
+    uploadErrorDiv.style.display = 'none';
 
     if (!photoInput.files[0]) {
         showUploadError('Please select a photo');
@@ -159,6 +163,16 @@ async function handlePhotoUpload(event) {
     if (!mealSelect.value) {
         showUploadError('Please select a meal');
         return;
+    }
+
+    const submitBtn = photoUploadForm.querySelector('.submit-btn');
+    const originalSubmitText = submitBtn ? submitBtn.textContent : '';
+    const formData = new FormData(photoUploadForm);
+
+    isUploading = true;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Uploading...';
     }
 
     try {
@@ -183,6 +197,12 @@ async function handlePhotoUpload(event) {
         showMessage('Photo uploaded successfully!');
     } catch (error) {
         showUploadError(error.message);
+    } finally {
+        isUploading = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalSubmitText || 'Upload';
+        }
     }
 }
 
