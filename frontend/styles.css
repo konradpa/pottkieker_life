@@ -423,9 +423,9 @@ h1 {
 /* Color-code locations */
 .meal-location[data-location="studierendenhaus"],
 .meal-card[data-location="studierendenhaus"] .meal-location {
-    background: rgba(97, 175, 239, 0.15);
-    color: var(--accent-bright);
-    border-color: var(--accent);
+    background: rgba(250, 179, 135, 0.15);
+    color: var(--orange);
+    border-color: var(--warm);
 }
 
 .meal-location[data-location="blattwerk"],
