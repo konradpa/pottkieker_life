@@ -11,7 +11,7 @@ let currentLocation = 'all';
 let currentSort = 'upvotes';
 let currentMeals = [];
 let emptyMealsMessage = 'No meals available for today.';
-let selectedTag = null; // Track the currently selected tag filter
+let selectedTags = new Set(); // Track multiple selected tag filters
 
 // DOM Elements
 const locationSelect = document.getElementById('location-select');
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (locationSelect) {
         locationSelect.addEventListener('change', (e) => {
             currentLocation = e.target.value;
-            selectedTag = null; // Clear tag filter when changing location
+            selectedTags.clear(); // Clear tag filters when changing location
             updateOpeningTimes(currentLocation);
             loadMeals();
         });
@@ -160,22 +160,26 @@ function renderMeals() {
     // Update the tag filter bar with available tags
     updateTagFilterBar();
 
-    // Filter meals by selected tag if active
+    // Filter meals by selected tags if active (meals must have AT LEAST ONE selected tag)
     let mealsToDisplay = currentMeals;
-    if (selectedTag) {
+    if (selectedTags.size > 0) {
         mealsToDisplay = currentMeals.filter(meal => {
             if (!meal.notes) return false;
-            const tags = meal.notes.split(',').map(t => t.trim());
-            return tags.includes(selectedTag);
+            const mealTags = meal.notes.split(',').map(t => t.trim());
+            // Check if meal has ANY of the selected tags
+            return Array.from(selectedTags).some(selectedTag =>
+                mealTags.includes(selectedTag)
+            );
         });
     }
 
     // Show appropriate message if no meals match the filter
-    if (mealsToDisplay.length === 0 && selectedTag) {
+    if (mealsToDisplay.length === 0 && selectedTags.size > 0) {
+        const tagsText = Array.from(selectedTags).map(tag => `"${escapeHtml(tag)}"`).join(', ');
         mealsContainer.innerHTML = `
             <div class="meal-card">
-                <p>No meals found with tag "${escapeHtml(selectedTag)}" for this location.</p>
-                <button onclick="clearTagFilter()" style="margin-top: 10px; padding: 8px 16px; cursor: pointer;">Clear filter</button>
+                <p>No meals found with tags ${tagsText} for this location.</p>
+                <button onclick="clearTagFilter()" style="margin-top: 10px; padding: 8px 16px; cursor: pointer;">Clear filters</button>
             </div>`;
         return;
     }
@@ -976,24 +980,24 @@ function updateTagFilterBar() {
 
     // Create clickable tag elements
     tagFilterList.innerHTML = sortedTags.map(tag => {
-        const isActive = selectedTag === tag;
+        const isActive = selectedTags.has(tag);
         return `<span class="filter-tag ${isActive ? 'active' : ''}" onclick="handleTagClick('${escapeHtml(tag).replace(/'/g, '&#39;')}')">${escapeHtml(tag)}</span>`;
     }).join('');
 }
 
 function handleTagClick(tag) {
-    if (selectedTag === tag) {
-        // Clicking the same tag again clears the filter
-        selectedTag = null;
+    if (selectedTags.has(tag)) {
+        // Clicking an active tag removes it from the filter
+        selectedTags.delete(tag);
     } else {
-        // Set the new tag filter
-        selectedTag = tag;
+        // Add tag to the filter
+        selectedTags.add(tag);
     }
     renderMeals();
 }
 
 function clearTagFilter() {
-    selectedTag = null;
+    selectedTags.clear();
     renderMeals();
 }
 

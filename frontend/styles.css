@@ -452,6 +452,7 @@ h1 {
     border-radius: var(--br);
     line-height: 1.5;
     letter-spacing: var(--track-tight);
+    text-transform: lowercase;
 }
 
 /* Tag Filter Bar */
