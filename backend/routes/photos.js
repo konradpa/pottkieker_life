@@ -7,6 +7,7 @@ const sharp = require('sharp');
 const router = express.Router();
 const db = require('../database');
 const { hashIP } = require('../utils/hashIP');
+const { getBerlinDate } = require('../utils/mensaParser');
 
 // Setup upload directory
 const UPLOAD_ROOT = path.join(__dirname, '../uploads');
@@ -96,11 +97,7 @@ function removePhotoByRelativePath(photoPath) {
 }
 
 function getTodayDate() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return getBerlinDate();
 }
 
 /**

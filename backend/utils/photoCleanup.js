@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const db = require('../database');
+const { getBerlinDate } = require('./mensaParser');
 
 const UPLOAD_ROOT = path.join(__dirname, '../uploads');
 
@@ -9,11 +10,7 @@ const UPLOAD_ROOT = path.join(__dirname, '../uploads');
  * Get today's date in YYYY-MM-DD format
  */
 function getTodayDate() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return getBerlinDate();
 }
 
 /**
