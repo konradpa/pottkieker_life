@@ -61,7 +61,7 @@ function updateSubtitleWithDate(dateString) {
     try {
         const date = new Date(dateString + 'T12:00:00'); // Add time to avoid timezone issues
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const formatted = date.toLocaleDateString('de-DE', options);
+        const formatted = date.toLocaleDateString('en-US', options);
         subtitleEl.textContent = `Rate meals for ${formatted}`;
     } catch (error) {
         console.error('Error formatting date:', error);
