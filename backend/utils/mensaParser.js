@@ -10,6 +10,7 @@ const MENSA_LOCATIONS = {
 
 const BASE_URL = 'https://cvzi.github.io/mensahd/feed';
 const META_URL = 'https://cvzi.github.io/mensahd/meta';
+const TIMEZONE = 'Europe/Berlin';
 const NOTE_LABELS = [
   {
     label: 'Vegan',
@@ -56,6 +57,20 @@ const NOTE_LABELS = [
     patterns: [/\balkohol\b/i, /\bwein\b/i, /\bliqueur\b/i, /\blikör\b/i, /\bschnaps\b/i, /\brum\b/i, /\bwhisky\b/i, /\bwhiskey\b/i, /\bweinbrand\b/i]
   }
 ];
+
+function getBerlinDate(date = new Date()) {
+  const berlinDate = new Date(date.toLocaleString('en-US', { timeZone: TIMEZONE }));
+  const year = berlinDate.getFullYear();
+  const month = String(berlinDate.getMonth() + 1).padStart(2, '0');
+  const day = String(berlinDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isBerlinWeekend(date = new Date()) {
+  const berlinDate = new Date(date.toLocaleString('en-US', { timeZone: TIMEZONE }));
+  const day = berlinDate.getDay();
+  return day === 0 || day === 6;
+}
 
 /**
  * Fetch and parse XML meal data from cvzi/mensahd
@@ -202,13 +217,16 @@ function extractMealsForDate(parsedData, date, location) {
 }
 
 /**
- * Get the most recent available meals for a specific location
- * Falls back to most recent date if today has no meals
+ * Get today's meals for a specific location (Berlin timezone)
  * @param {string} location - Mensa location ID
  * @returns {Promise<Array>} Array of meals
  */
 async function getTodaysMeals(location) {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  if (isBerlinWeekend()) {
+    return [];
+  }
+
+  const today = getBerlinDate(); // YYYY-MM-DD format
 
   try {
     const data = await fetchMensaData(location);
@@ -221,33 +239,6 @@ async function getTodaysMeals(location) {
 
     // Try today first
     let meals = extractMealsForDate(data, today, location);
-
-    // If no meals today, get the most recent available date
-    if (meals.length === 0 && data && data.openmensa && data.openmensa.canteen) {
-      const canteen = data.openmensa.canteen;
-      let days = canteen.day;
-
-      if (!days) {
-        return [];
-      }
-
-      // Handle single day vs array of days
-      if (!Array.isArray(days)) {
-        days = [days];
-      }
-
-      // Filter days that have meals and sort by date (earliest first)
-      const daysWithMeals = days
-        .filter(day => day.category)
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      if (daysWithMeals.length > 0) {
-        const earliestDate = daysWithMeals[0].date;
-        console.log(`No meals for ${location} today. Using earliest available date: ${earliestDate}`);
-        meals = extractMealsForDate(data, earliestDate, location);
-        console.log(`Found ${meals.length} meals for ${location} on ${earliestDate}`);
-      }
-    }
 
     return meals;
   } catch (error) {
@@ -389,6 +380,10 @@ async function fetchOpeningTimes(location) {
  * @returns {Promise<Array>} Array of all today's meals across locations
  */
 async function getAllTodaysMeals() {
+  if (isBerlinWeekend()) {
+    return [];
+  }
+
   const locations = Object.keys(MENSA_LOCATIONS);
   const allMeals = [];
 
@@ -411,5 +406,7 @@ module.exports = {
   getAllTodaysMeals,
   extractMealsForDate,
   simplifyNotes,
-  fetchOpeningTimes
+  fetchOpeningTimes,
+  getBerlinDate,
+  isBerlinWeekend
 };

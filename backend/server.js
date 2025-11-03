@@ -17,7 +17,9 @@ require('./database');
 
 // Initialize photo cleanup scheduler
 const { initPhotoCleanupScheduler } = require('./utils/photoCleanup');
+const { initMealScheduler } = require('./utils/mealScheduler');
 initPhotoCleanupScheduler();
+initMealScheduler();
 
 const app = express();
 app.set('trust proxy', true); // ✅ This line fixes IP detection through Nginx

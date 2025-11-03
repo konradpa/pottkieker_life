@@ -10,6 +10,7 @@ const OPENING_TIMES_DEFAULT = 'OPENING TIMES vary by location';
 let currentLocation = 'studierendenhaus';
 let currentSort = 'upvotes';
 let currentMeals = [];
+let emptyMealsMessage = 'No meals available for today.';
 
 // DOM Elements
 const locationSelect = document.getElementById('location-select');
@@ -116,12 +117,17 @@ async function loadMeals() {
             updateOpeningTimes(currentLocation);
         }
 
-        // Update subtitle with date from meals if available
-        if (data.meals && data.meals.length > 0 && data.meals[0].date) {
+        if (data.message) {
+            if (subtitleEl) {
+                subtitleEl.textContent = data.message;
+            }
+        } else if (data.meals && data.meals.length > 0 && data.meals[0].date) {
             updateSubtitleWithDate(data.meals[0].date);
+        } else if (subtitleEl) {
+            subtitleEl.textContent = 'Rate today\'s meals';
         }
 
-        displayMeals(data.meals);
+        displayMeals(data.meals, data.message);
         hideLoading();
     } catch (error) {
         console.error('Error loading meals:', error);
@@ -131,7 +137,11 @@ async function loadMeals() {
 }
 
 // Display meals in a single minimalist list
-function displayMeals(meals) {
+function displayMeals(meals, message) {
+    emptyMealsMessage = typeof message === 'string' && message.trim().length > 0
+        ? message.trim()
+        : 'No meals available for today.';
+
     currentMeals = Array.isArray(meals)
         ? meals.map((meal, index) => ({ ...meal, _originalIndex: index }))
         : [];
@@ -140,7 +150,7 @@ function displayMeals(meals) {
 
 function renderMeals() {
     if (!currentMeals.length) {
-        mealsContainer.innerHTML = '<div class="meal-card"><p>No meals available for today.</p></div>';
+        mealsContainer.innerHTML = `<div class="meal-card"><p>${escapeHtml(emptyMealsMessage)}</p></div>`;
         return;
     }
 

@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
-const { getTodaysMeals, MENSA_LOCATIONS, simplifyNotes, fetchOpeningTimes } = require('../utils/mensaParser');
+const {
+  getTodaysMeals,
+  MENSA_LOCATIONS,
+  simplifyNotes,
+  fetchOpeningTimes,
+  getBerlinDate,
+  isBerlinWeekend
+} = require('../utils/mensaParser');
+const { upsertMeals } = require('../utils/mealStorage');
 
 /**
  * GET /api/meals/today
@@ -12,6 +20,19 @@ router.get('/today', async (req, res) => {
   const { location } = req.query;
   const locationKeys = Object.keys(MENSA_LOCATIONS);
   const isAllLocations = location === 'all';
+  const today = getBerlinDate();
+  const resolvedLocation = isAllLocations
+    ? 'all'
+    : (location && MENSA_LOCATIONS[location] ? location : 'studierendenhaus');
+
+  if (isBerlinWeekend()) {
+    return res.json({
+      meals: [],
+      location: resolvedLocation,
+      date: today,
+      message: 'Enjoy your weekend :)'
+    });
+  }
 
   try {
     // Fetch fresh meal data from Mensa source
@@ -22,83 +43,27 @@ router.get('/today', async (req, res) => {
         const locationMeals = await getTodaysMeals(loc);
         meals.push(...locationMeals);
       }
-    } else if (location && MENSA_LOCATIONS[location]) {
-      meals = await getTodaysMeals(location);
     } else {
-      // Get meals from a default location (or all locations)
-      meals = await getTodaysMeals('studierendenhaus');
+      meals = await getTodaysMeals(resolvedLocation);
     }
 
-    // Get the actual date of the meals (might not be today)
-    const mealDate = meals.length > 0 ? meals[0].date : new Date().toISOString().split('T')[0];
-
-    // For Philturm, delete old Gemüsebar meals before inserting new ones
-    if (location === 'philturm' || (isAllLocations && meals.some(m => m.mensa_location === 'philturm'))) {
-      const philturmDates = [...new Set(meals.filter(m => m.mensa_location === 'philturm').map(m => m.date))];
-      for (const date of philturmDates) {
-        await new Promise((resolve, reject) => {
-          db.run(
-            `DELETE FROM meals
-             WHERE mensa_location = 'philturm'
-             AND date = ?
-             AND category LIKE '%Gemüsebar%'
-             AND external_id != ?`,
-            [date, `philturm_${date}_Gemuesebar`],
-            (err) => {
-              if (err) reject(err);
-              else resolve();
-            }
-          );
-        });
-      }
-    }
-
-    // Insert meals into database if they don't exist
-    for (const meal of meals) {
-      await new Promise((resolve, reject) => {
-        db.run(
-          `INSERT INTO meals (external_id, name, category, date, mensa_location, price_student, price_employee, price_other, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(external_id) DO UPDATE SET
-             name = excluded.name,
-             category = excluded.category,
-             date = excluded.date,
-             mensa_location = excluded.mensa_location,
-             price_student = excluded.price_student,
-             price_employee = excluded.price_employee,
-             price_other = excluded.price_other,
-             notes = excluded.notes`,
-          [
-            meal.external_id,
-            meal.name,
-            meal.category,
-            meal.date,
-            meal.mensa_location,
-            meal.price_student,
-            meal.price_employee,
-            meal.price_other,
-            meal.notes
-          ],
-          (err) => {
-            if (err) reject(err);
-            else resolve();
-          }
-        );
-      });
+    if (meals.length > 0) {
+      await upsertMeals(meals);
     }
 
     // Get meals with vote counts from database (use actual meal date, not today)
-    const distinctDates = [...new Set(meals.map(meal => meal.date))];
-    const datePlaceholders = (distinctDates.length > 0 ? distinctDates : [mealDate])
+    const distinctDates = [...new Set(meals.map(meal => meal.date))].filter(Boolean);
+    const fallbackDates = distinctDates.length > 0 ? distinctDates : [today];
+    const datePlaceholders = fallbackDates
       .map(() => '?')
       .join(', ');
 
-    const params = distinctDates.length > 0 ? [...distinctDates] : [mealDate];
+    const params = [...fallbackDates];
 
     let locationFilter = '';
-    if (location && !isAllLocations && MENSA_LOCATIONS[location]) {
+    if (!isAllLocations && resolvedLocation !== 'all') {
       locationFilter = 'AND mensa_location = ?';
-      params.push(location);
+      params.push(resolvedLocation);
     }
 
     const query = `
@@ -194,7 +159,8 @@ router.get('/today', async (req, res) => {
 
         res.json({
           meals: normalizedMeals,
-          location: isAllLocations ? 'all' : (location && MENSA_LOCATIONS[location] ? location : 'studierendenhaus')
+          location: resolvedLocation,
+          date: fallbackDates[0] || today
         });
       }
     );
