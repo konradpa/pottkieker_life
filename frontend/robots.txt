@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin.html
+Allow: /
+
+Sitemap: https://pottkieker.life/sitemap.xml
+
