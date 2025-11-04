@@ -36,12 +36,51 @@ async function cleanupPhilturmGemuesebar(meals) {
   }
 }
 
+async function cleanupPastabar(meals) {
+  // Group meals by location and date
+  const pastabarMeals = meals.filter(meal =>
+    meal.category && meal.category.toLowerCase().includes('pasta')
+  );
+
+  const locationsAndDates = [...new Set(
+    pastabarMeals.map(meal => `${meal.mensa_location}|${meal.date}`)
+  )];
+
+  if (locationsAndDates.length === 0) {
+    return;
+  }
+
+  // For each location-date combination, get the external_ids that should be kept
+  for (const locationDate of locationsAndDates) {
+    const [location, date] = locationDate.split('|');
+    const externalIdsToKeep = pastabarMeals
+      .filter(meal => meal.mensa_location === location && meal.date === date)
+      .map(meal => meal.external_id);
+
+    if (externalIdsToKeep.length === 0) {
+      continue;
+    }
+
+    // Delete old Pastabar entries that are not in the current meal list
+    const placeholders = externalIdsToKeep.map(() => '?').join(', ');
+    await runAsync(
+      `DELETE FROM meals
+         WHERE mensa_location = ?
+         AND date = ?
+         AND category LIKE '%Pasta%'
+         AND external_id NOT IN (${placeholders})`,
+      [location, date, ...externalIdsToKeep]
+    );
+  }
+}
+
 async function upsertMeals(meals = []) {
   if (!Array.isArray(meals) || meals.length === 0) {
     return;
   }
 
   await cleanupPhilturmGemuesebar(meals);
+  await cleanupPastabar(meals);
 
   for (const meal of meals) {
     await runAsync(
