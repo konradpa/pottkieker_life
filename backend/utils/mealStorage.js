@@ -12,6 +12,95 @@ function runAsync(sql, params = []) {
   });
 }
 
+function normalizeString(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return String(value).trim();
+}
+
+function hasAnyPrice(meal = {}) {
+  const priceFields = ['price_student', 'price_employee', 'price_other'];
+  return priceFields.some(field => normalizeString(meal[field]) !== '');
+}
+
+function isMealEmpty(meal = {}) {
+  const name = normalizeString(meal.name);
+  const notes = normalizeString(meal.notes);
+
+  return name === '' && notes === '' && !hasAnyPrice(meal);
+}
+
+async function cleanupEmptyMeals(emptyMeals = []) {
+  if (!Array.isArray(emptyMeals) || emptyMeals.length === 0) {
+    return;
+  }
+
+  const cleanupTargets = new Map();
+
+  emptyMeals.forEach(meal => {
+    const location = meal && meal.mensa_location ? meal.mensa_location : null;
+    const date = meal && meal.date ? meal.date : null;
+    const key = `${location || 'unknown'}|${date || 'unknown'}`;
+
+    if (!cleanupTargets.has(key)) {
+      cleanupTargets.set(key, {
+        location,
+        date,
+        externalIds: new Set()
+      });
+    }
+
+    if (meal && meal.external_id) {
+      cleanupTargets.get(key).externalIds.add(meal.external_id);
+    }
+  });
+
+  for (const { location, date, externalIds } of cleanupTargets.values()) {
+    const baseConditions = [];
+    const params = [];
+
+    if (location) {
+      baseConditions.push('mensa_location = ?');
+      params.push(location);
+    } else {
+      baseConditions.push('mensa_location IS NULL');
+    }
+
+    if (date) {
+      baseConditions.push('date = ?');
+      params.push(date);
+    }
+
+    if (baseConditions.length === 0) {
+      baseConditions.push('1 = 1');
+    }
+
+    const priceEmptyCondition = "COALESCE(TRIM(price_student), '') = '' AND COALESCE(TRIM(price_employee), '') = '' AND COALESCE(TRIM(price_other), '') = ''";
+
+    const deleteClauses = [
+      `( (name IS NULL OR TRIM(name) = '')
+         AND (notes IS NULL OR TRIM(notes) = '')
+         AND ${priceEmptyCondition} )`
+    ];
+
+    if (externalIds.size > 0) {
+      const placeholders = Array.from(externalIds).map(() => '?').join(', ');
+      deleteClauses.push(`external_id IN (${placeholders})`);
+      params.push(...externalIds);
+    }
+
+    const sql = `
+      DELETE FROM meals
+      WHERE ${baseConditions.join(' AND ')}
+        AND (${deleteClauses.join(' OR ')})
+    `;
+
+    await runAsync(sql, params);
+  }
+}
+
 async function cleanupPhilturmGemuesebar(meals) {
   const philturmDates = [...new Set(
     meals
@@ -82,7 +171,16 @@ async function upsertMeals(meals = []) {
   await cleanupPhilturmGemuesebar(meals);
   await cleanupPastabar(meals);
 
-  for (const meal of meals) {
+  const emptyMeals = meals.filter(isMealEmpty);
+  const validMeals = meals.filter(meal => !isMealEmpty(meal));
+
+  await cleanupEmptyMeals(emptyMeals);
+
+  if (validMeals.length === 0) {
+    return;
+  }
+
+  for (const meal of validMeals) {
     await runAsync(
       `INSERT INTO meals (external_id, name, category, date, mensa_location, price_student, price_employee, price_other, notes)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
