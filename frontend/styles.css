@@ -274,6 +274,58 @@ h1 {
     box-shadow: var(--shadow-accent);
 }
 
+/* Random Meal Button */
+.random-meal-btn {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, var(--bg-4), var(--bg-3));
+    color: var(--purple-bright);
+    border: var(--bw) solid var(--purple);
+    border-radius: var(--br);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--size-s);
+    letter-spacing: var(--track-tight);
+    text-transform: uppercase;
+    transition: all var(--t-fast);
+    font-family: inherit;
+}
+
+.random-meal-btn:hover {
+    background: linear-gradient(135deg, var(--purple), var(--purple-bright));
+    color: #1e1e2e;
+    border-color: var(--purple-bright);
+    box-shadow: var(--shadow-purple);
+}
+
+.random-meal-btn.spinning {
+    animation: spin 1s ease-in-out;
+    pointer-events: none;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Highlighted meal card */
+.meal-card.random-highlight {
+    animation: highlightPulse 2s ease-in-out;
+    border-color: var(--purple-bright);
+    box-shadow: 0 0 20px rgba(189, 147, 249, 0.6);
+}
+
+@keyframes highlightPulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(189, 147, 249, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(189, 147, 249, 0.8);
+        transform: scale(1.02);
+    }
+}
+
 /* Loading & Error States */
 .loading {
     text-align: center;

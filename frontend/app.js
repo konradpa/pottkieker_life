@@ -16,6 +16,7 @@ let selectedTags = new Set(); // Track multiple selected tag filters
 // DOM Elements
 const locationSelect = document.getElementById('location-select');
 const refreshBtn = document.getElementById('refresh-btn');
+const randomMealBtn = document.getElementById('random-meal-btn');
 const mealsContainer = document.getElementById('meals-container');
 const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
@@ -43,6 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
             loadMeals();
+        });
+    }
+
+    if (randomMealBtn) {
+        randomMealBtn.addEventListener('click', () => {
+            pickRandomMeal();
         });
     }
 
@@ -135,6 +142,68 @@ async function loadMeals() {
         console.error('Error loading meals:', error);
         showError('Failed to load meals. Please try again.');
         hideLoading();
+    }
+}
+
+// Pick a random meal from today's menu
+async function pickRandomMeal() {
+    if (!randomMealBtn) return;
+
+    // Add spinning animation
+    randomMealBtn.classList.add('spinning');
+
+    try {
+        const response = await fetch(`${API_BASE}/meals/random?location=${currentLocation}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Wait for animation to complete
+        setTimeout(() => {
+            randomMealBtn.classList.remove('spinning');
+
+            if (data.meal) {
+                highlightMeal(data.meal.id);
+            } else if (data.message) {
+                showError(data.message);
+                setTimeout(() => hideError(), 3000);
+            }
+        }, 1000);
+
+    } catch (error) {
+        console.error('Error picking random meal:', error);
+        randomMealBtn.classList.remove('spinning');
+        showError('Failed to pick a random meal. Please try again.');
+        setTimeout(() => hideError(), 3000);
+    }
+}
+
+// Highlight a specific meal and scroll to it
+function highlightMeal(mealId) {
+    // Remove any existing highlights
+    document.querySelectorAll('.meal-card.random-highlight').forEach(card => {
+        card.classList.remove('random-highlight');
+    });
+
+    // Find and highlight the target meal
+    const targetCard = document.querySelector(`.meal-card[data-meal-id="${mealId}"]`);
+
+    if (targetCard) {
+        targetCard.classList.add('random-highlight');
+
+        // Scroll to the meal with smooth animation
+        targetCard.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+
+        // Remove highlight after animation
+        setTimeout(() => {
+            targetCard.classList.remove('random-highlight');
+        }, 2000);
     }
 }
 
