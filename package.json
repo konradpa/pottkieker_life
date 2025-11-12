@@ -1,7 +1,7 @@
 {
-  "name": "mensa-rating",
+  "name": "pottkieker",
   "version": "1.0.0",
-  "description": "Rating website for Universität Hamburg Mensa meals",
+  "description": "Source code for pottkieker.life - A web application for rating and sharing photos of daily meals from Universität Hamburg Mensa locations",
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
@@ -10,10 +10,23 @@
   "keywords": [
     "mensa",
     "uni-hamburg",
-    "rating"
+    "rating",
+    "food",
+    "community",
+    "photo-sharing",
+    "university",
+    "hamburg"
   ],
-  "author": "",
+  "author": "Pottkieker.life",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/konradpa/pottkieker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/konradpa/pottkieker/issues"
+  },
+  "homepage": "https://pottkieker.life",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
