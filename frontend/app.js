@@ -706,29 +706,39 @@ function getLocationLabel(locationId) {
 }
 
 function getPriceInfo(price) {
-    if (!price && price !== 0) {
-        return { display: '', numeric: null, isPerHundred: false };
+    if (price === null || price === undefined) {
+        return { display: '', numeric: null, isWeightPrice: false };
     }
 
-    const normalized = String(price).replace(',', '.');
-    const numeric = parseFloat(normalized);
+    const raw = String(price).trim();
+    if (raw.length === 0) {
+        return { display: '', numeric: null, isWeightPrice: false };
+    }
 
-    if (Number.isNaN(numeric)) {
+    const perKgRegex = /\b(pro|\/)\s*kg\b/i;
+    const perHundredRegex = /\/\s*100g\b/i;
+    const containsPerKg = perKgRegex.test(raw);
+    const containsPerHundred = perHundredRegex.test(raw);
+
+    const normalized = raw.replace(',', '.');
+    const numeric = parseFloat(normalized);
+    const hasNumeric = Number.isFinite(numeric);
+    const isWeightPrice = containsPerHundred || containsPerKg || (hasNumeric && numeric <= 1);
+    const suffix = isWeightPrice ? ' /100G' : '';
+
+    if (!hasNumeric) {
         return {
-            display: `Students: €${String(price)}`,
+            display: `Students: €${raw}${suffix}`,
             numeric: null,
-            isPerHundred: false
+            isWeightPrice
         };
     }
 
-    const display = numeric.toFixed(2);
-    const isPerHundred = numeric <= 1;
-    const suffix = isPerHundred ? ' /100g' : '';
-
+    const displayValue = numeric.toFixed(2);
     return {
-        display: `Students: €${display}${suffix}`,
+        display: `Students: €${displayValue}${suffix}`,
         numeric,
-        isPerHundred
+        isWeightPrice
     };
 }
 
@@ -750,8 +760,8 @@ function compareByPrice(a, b) {
     const infoA = getPriceInfo(a.price_student);
     const infoB = getPriceInfo(b.price_student);
 
-    if (infoA.isPerHundred !== infoB.isPerHundred) {
-        return infoA.isPerHundred ? 1 : -1;
+    if (infoA.isWeightPrice !== infoB.isWeightPrice) {
+        return infoA.isWeightPrice ? 1 : -1;
     }
 
     if (infoA.numeric === null && infoB.numeric !== null) return 1;

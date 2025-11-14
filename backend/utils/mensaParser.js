@@ -64,6 +64,9 @@ const NOTE_LABELS = [
 
 // GIW/GlW marks meals containing gluten (wheat) in the original Mensa titles
 const GLUTEN_CODE_REGEX = /\bG[IL]W\b/i;
+const WEIGHT_PRICE_VALUE = 1.2;
+const PRICE_TOLERANCE = 0.001;
+const WEIGHT_PRICE_SUFFIX_REGEX = /(\b(pro|\/)\s*kg\b|\/\s*100g\b)/i;
 
 function getBerlinDate(date = new Date()) {
   const berlinDate = new Date(date.toLocaleString('en-US', { timeZone: TIMEZONE }));
@@ -189,9 +192,9 @@ function extractMealsForDate(parsedData, date, location) {
       categoryMeals.forEach(meal => {
         // Check if price exists before trying to parse it
         const prices = meal.price ? (Array.isArray(meal.price) ? meal.price : [meal.price]) : [];
-        const priceStudent = prices.find(p => p && p.role === 'student')?._ || null;
-        const priceEmployee = prices.find(p => p && p.role === 'employee')?._ || null;
-        const priceOther = prices.find(p => p && p.role === 'other')?._ || null;
+        const priceStudent = normalizeWeightPrice(prices.find(p => p && p.role === 'student')?._ || null);
+        const priceEmployee = normalizeWeightPrice(prices.find(p => p && p.role === 'employee')?._ || null);
+        const priceOther = normalizeWeightPrice(prices.find(p => p && p.role === 'other')?._ || null);
 
         // Extract notes (dietary info, allergens)
         let notes = [];
@@ -318,6 +321,30 @@ function cleanMealName(name = '') {
   cleaned = cleaned.replace(/\s+,/g, ',');
 
   return cleaned;
+}
+
+function normalizeWeightPrice(value) {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  const raw = String(value).trim();
+  if (raw.length === 0 || WEIGHT_PRICE_SUFFIX_REGEX.test(raw)) {
+    return value;
+  }
+
+  const normalized = raw.replace(',', '.');
+  const numeric = parseFloat(normalized);
+
+  if (!Number.isFinite(numeric)) {
+    return value;
+  }
+
+  if (Math.abs(numeric - WEIGHT_PRICE_VALUE) < PRICE_TOLERANCE) {
+    return `${numeric.toFixed(2)} /100G`;
+  }
+
+  return value;
 }
 
 /**
