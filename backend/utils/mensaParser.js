@@ -37,6 +37,10 @@ const NOTE_LABELS = [
     patterns: [/laktosefrei/i, /enthält keine laktose/i, /enthaelt keine laktose/i]
   },
   {
+    label: 'Glutenfrei',
+    patterns: [/glutenfrei/i]
+  },
+  {
     label: 'Wild',
     patterns: [/\bwild\b/i, /\bhirsch\b/i, /\breh\b/i, /\bwildschwein\b/i]
   },
@@ -57,6 +61,9 @@ const NOTE_LABELS = [
     patterns: [/\balkohol\b/i, /\bwein\b/i, /\bliqueur\b/i, /\blikör\b/i, /\bschnaps\b/i, /\brum\b/i, /\bwhisky\b/i, /\bwhiskey\b/i, /\bweinbrand\b/i]
   }
 ];
+
+// GIW/GlW marks meals containing gluten (wheat) in the original Mensa titles
+const GLUTEN_CODE_REGEX = /\bG[IL]W\b/i;
 
 function getBerlinDate(date = new Date()) {
   const berlinDate = new Date(date.toLocaleString('en-US', { timeZone: TIMEZONE }));
@@ -193,7 +200,14 @@ function extractMealsForDate(parsedData, date, location) {
         }
 
         const filteredNotes = simplifyNotes(notes);
-        const cleanedName = cleanMealName(meal.name);
+        const originalName = typeof meal.name === 'string' ? meal.name : '';
+        const cleanedName = cleanMealName(originalName);
+        const finalNotes = [...filteredNotes];
+
+        // Treat meals without the GIW/GlW allergen code in the original name as gluten-free
+        if (originalName && !GLUTEN_CODE_REGEX.test(originalName) && !finalNotes.includes('Glutenfrei')) {
+          finalNotes.push('Glutenfrei');
+        }
 
         meals.push({
           name: cleanedName,
@@ -203,7 +217,7 @@ function extractMealsForDate(parsedData, date, location) {
           price_student: priceStudent,
           price_employee: priceEmployee,
           price_other: priceOther,
-          notes: filteredNotes.length > 0 ? filteredNotes.join(', ') : '',
+          notes: finalNotes.length > 0 ? finalNotes.join(', ') : '',
           external_id: `${location}_${date}_${meal.name.replace(/\s+/g, '_')}`
         });
       });
