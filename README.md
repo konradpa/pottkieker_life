@@ -63,8 +63,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - Meal data provided by [Studierendenwerk Hamburg](https://www.stwhh.de/)
 - Data parsing via [cvzi/mensahd](https://github.com/cvzi/mensahd)
-- Built with ❤️ for Universität Hamburg students
-
 
 
 **Note**: This is a community project and is not officially affiliated with Universität Hamburg or Studierendenwerk Hamburg.
