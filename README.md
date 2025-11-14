@@ -4,13 +4,32 @@ Source code for [pottkieker.life](https://pottkieker.life)
 
 ## Tech Stack
 
-- **Backend**: Node.js with Express
-- **Database**: SQLite3
-- **Frontend**: Vanilla HTML/CSS/JavaScript
-- **Authentication**: JWT with bcrypt password hashing
-- **Image Processing**: Sharp for photo optimization
-- **Security**: Helmet for HTTP headers, CORS configuration
-- **Data Source**: [cvzi/mensahd](https://github.com/cvzi/mensahd) OpenMensa parser
+### Backend
+- **Runtime**: Node.js with Express.js web framework
+- **Database**: SQLite3 with custom migration system
+- **Authentication**: JWT (JSON Web Tokens) with bcrypt password hashing
+- **Image Processing**: Sharp for photo optimization and resizing
+- **File Uploads**: Multer for multipart/form-data handling
+- **Security**:
+  - Helmet.js for secure HTTP headers
+  - CORS configuration for cross-origin requests
+  - IP hashing for privacy-preserving rate limiting
+  - Ownership token-based middleware for photo/comment authorization
+- **Task Scheduling**: node-cron for automated meal data fetching and cleanup
+- **XML Parsing**: xml2js for processing OpenMensa XML feeds
+
+### Frontend
+- **Architecture**: Vanilla JavaScript (no frameworks)
+- **Pages**:
+  - Main meal rating interface ([index.html](frontend/index.html))
+  - User feed for photo sharing ([feed.html](frontend/feed.html))
+  - Admin dashboard ([admin.html](frontend/admin.html))
+- **Image Viewer**: Custom lightbox implementation with zoom and navigation
+- **Styling**: Custom CSS with responsive design
+
+### Data Source
+- Meal data from [cvzi/mensahd](https://github.com/cvzi/mensahd) OpenMensa parser
+- Automated daily fetching and parsing of Mensa menus
 
 ## Available Mensa Locations
 
@@ -21,33 +40,45 @@ Source code for [pottkieker.life](https://pottkieker.life)
 ## Project Structure
 
 ```
-pottkieker/
+mensa_project/
 ├── backend/
-│   ├── server.js           # Express server
-│   ├── database.js         # SQLite database setup
+│   ├── server.js               # Express server setup and configuration
+│   ├── database.js             # SQLite database setup with migrations
 │   ├── middleware/
-│   │   └── auth.js         # JWT authentication middleware
-│   ├── migrations/         # Database migration scripts
+│   │   └── ownershipToken.js   # Cookie-based ownership verification
 │   ├── routes/
-│   │   ├── auth.js         # Authentication endpoints
-│   │   ├── user.js         # User profile endpoints
-│   │   ├── meals.js        # Meals API endpoints
-│   │   ├── votes.js        # Voting API endpoints
-│   │   ├── portions.js     # Portions tracking endpoints
-│   │   ├── comments.js     # Comments API endpoints
-│   │   └── photos.js       # Photo upload/management endpoints
-│   └── utils/
-│       ├── mensaParser.js  # XML parser for Mensa data
-│       └── mealStorage.js  # Meal data storage and cleanup
+│   │   ├── admin.js            # Admin panel endpoints
+│   │   ├── comments.js         # Comment posting and management
+│   │   ├── meals.js            # Meal data API endpoints
+│   │   ├── photos.js           # Photo upload, retrieval, and deletion
+│   │   ├── portions.js         # Portion size tracking
+│   │   └── votes.js            # Meal rating/voting system
+│   ├── utils/
+│   │   ├── mensaParser.js      # XML parser for OpenMensa data
+│   │   ├── mealStorage.js      # Meal data fetching and storage
+│   │   ├── mealScheduler.js    # Cron jobs for automated data updates
+│   │   ├── photoCleanup.js     # Automated cleanup of old photos
+│   │   └── hashIP.js           # IP address hashing for privacy
+│   └── uploads/                # Photo storage directory
 ├── frontend/
-│   ├── index.html          # Main HTML page
-│   ├── admin.html          # Admin dashboard
-│   ├── styles.css          # Styling
-│   └── app.js              # Frontend JavaScript
+│   ├── index.html              # Main meal rating interface
+│   ├── feed.html               # Photo feed and social features
+│   ├── admin.html              # Admin dashboard
+│   ├── app.js                  # Main application JavaScript
+│   ├── feed.js                 # Feed page JavaScript
+│   ├── styles.css              # Main application styles
+│   ├── feed.css                # Feed page styles
+│   ├── imageViewer.js          # Lightbox image viewer
+│   ├── imageViewer.css         # Image viewer styles
+│   ├── DESIGN_SYSTEM.md        # Design guidelines and constants
+│   ├── robots.txt              # Search engine directives
+│   └── sitemap.xml             # Site structure for SEO
 ├── database/
-│   └── mensa.db            # SQLite database (created on first run)
-├── .env.example            # Example environment configuration
+│   └── mensa.db                # SQLite database (auto-generated)
+├── .env.example                # Environment variables template
+├── .gitignore
 ├── package.json
+├── LICENSE
 └── README.md
 ```
 
