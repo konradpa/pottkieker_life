@@ -11,7 +11,17 @@ const { hashIP } = require('../utils/hashIP');
 router.post('/:mealId', (req, res) => {
   const { mealId } = req.params;
   const { vote_type } = req.body;
-  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
+
+  // Determine identity
+  let identifier;
+  let userId = null;
+
+  if (req.user) {
+    identifier = `user:${req.user.id}`;
+    userId = req.user.id;
+  } else {
+    identifier = hashIP(req.ip || req.connection.remoteAddress);
+  }
 
   // Validate vote type
   if (!vote_type || (vote_type !== 'up' && vote_type !== 'down')) {
@@ -29,13 +39,10 @@ router.post('/:mealId', (req, res) => {
       return res.status(404).json({ error: 'Meal not found' });
     }
 
-    // Toggle or change vote:
-    // - If an existing vote for this IP is the same type -> delete (toggle off)
-    // - If different -> update
-    // - If none -> insert
+    // Toggle or change vote
     db.get(
       'SELECT id, vote_type FROM votes WHERE meal_id = ? AND ip_address = ?',
-      [mealId, ip_address],
+      [mealId, identifier],
       (lookupErr, existing) => {
         if (lookupErr) {
           console.error('Vote lookup error:', lookupErr);
@@ -59,7 +66,7 @@ router.post('/:mealId', (req, res) => {
               // Determine user's current vote after operation
               db.get(
                 'SELECT vote_type FROM votes WHERE meal_id = ? AND ip_address = ?',
-                [mealId, ip_address],
+                [mealId, identifier],
                 (stateErr, stateRow) => {
                   if (stateErr) {
                     console.error('State check error:', stateErr);
@@ -81,7 +88,7 @@ router.post('/:mealId', (req, res) => {
         if (existing) {
           if (existing.vote_type === vote_type) {
             // Toggle off
-            db.run('DELETE FROM votes WHERE id = ?', [existing.id], function(delErr) {
+            db.run('DELETE FROM votes WHERE id = ?', [existing.id], function (delErr) {
               if (delErr) {
                 console.error('Vote delete error:', delErr);
                 return res.status(500).json({ error: 'Failed to remove vote' });
@@ -93,7 +100,7 @@ router.post('/:mealId', (req, res) => {
             db.run(
               'UPDATE votes SET vote_type = ?, timestamp = CURRENT_TIMESTAMP WHERE id = ?',
               [vote_type, existing.id],
-              function(updateErr) {
+              function (updateErr) {
                 if (updateErr) {
                   console.error('Vote update error:', updateErr);
                   return res.status(500).json({ error: 'Failed to update vote' });
@@ -105,9 +112,9 @@ router.post('/:mealId', (req, res) => {
         } else {
           // Insert new vote
           db.run(
-            `INSERT INTO votes (meal_id, vote_type, ip_address) VALUES (?, ?, ?)`,
-            [mealId, vote_type, ip_address],
-            function(insertErr) {
+            `INSERT INTO votes (meal_id, vote_type, ip_address, user_id) VALUES (?, ?, ?, ?)`,
+            [mealId, vote_type, identifier, userId],
+            function (insertErr) {
               if (insertErr) {
                 console.error('Vote insert error:', insertErr);
                 return res.status(500).json({ error: 'Failed to record vote' });
@@ -127,12 +134,18 @@ router.post('/:mealId', (req, res) => {
  */
 router.delete('/:mealId', (req, res) => {
   const { mealId } = req.params;
-  const ip_address = hashIP(req.ip || req.connection.remoteAddress);
+
+  let identifier;
+  if (req.user) {
+    identifier = `user:${req.user.id}`;
+  } else {
+    identifier = hashIP(req.ip || req.connection.remoteAddress);
+  }
 
   db.run(
     'DELETE FROM votes WHERE meal_id = ? AND ip_address = ?',
-    [mealId, ip_address],
-    function(err) {
+    [mealId, identifier],
+    function (err) {
       if (err) {
         console.error('Delete vote error:', err);
         return res.status(500).json({ error: 'Failed to delete vote' });
@@ -142,7 +155,6 @@ router.delete('/:mealId', (req, res) => {
     }
   );
 });
-
 /**
  * GET /api/votes/:mealId
  * Get vote counts for a specific meal

@@ -66,9 +66,9 @@ dist/
 build/
 
 # AI assistant rules and internal docs
-.clinerules
+
 .claude/
-frontend/DESIGN_SYSTEM.md
+
 
 # Backup files
 *.bak

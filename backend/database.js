@@ -31,6 +31,7 @@ db.serialize(() => {
       vote_type TEXT NOT NULL CHECK(vote_type IN ('up', 'down')),
       ip_address TEXT NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      user_id TEXT,
       FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE,
       UNIQUE(meal_id, ip_address)
     )
@@ -44,6 +45,7 @@ db.serialize(() => {
       portion_size TEXT NOT NULL CHECK(portion_size IN ('big', 'small')),
       ip_address TEXT NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      user_id TEXT,
       FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE,
       UNIQUE(meal_id, ip_address)
     )
@@ -59,6 +61,7 @@ db.serialize(() => {
       ip_address TEXT NOT NULL,
       owner_token_hash TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      user_id TEXT,
       FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE
     )
   `);
@@ -75,6 +78,7 @@ db.serialize(() => {
       owner_token_hash TEXT,
       upload_date DATE NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      user_id TEXT,
       FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE
     )
   `);
@@ -86,6 +90,7 @@ db.serialize(() => {
       photo_id INTEGER NOT NULL,
       ip_address TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      user_id TEXT,
       FOREIGN KEY (photo_id) REFERENCES food_photos(id) ON DELETE CASCADE,
       UNIQUE(photo_id, ip_address)
     )
@@ -101,6 +106,7 @@ db.serialize(() => {
       ip_address TEXT NOT NULL,
       owner_token_hash TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      user_id TEXT,
       FOREIGN KEY (photo_id) REFERENCES food_photos(id) ON DELETE CASCADE
     )
   `);
@@ -113,7 +119,14 @@ db.serialize(() => {
     { table: 'photo_comments', column: 'owner_token_hash', definition: 'ALTER TABLE photo_comments ADD COLUMN owner_token_hash TEXT' },
     { table: 'food_photos', column: 'owner_token_hash', definition: 'ALTER TABLE food_photos ADD COLUMN owner_token_hash TEXT' },
     { table: 'comments', column: 'parent_comment_id', definition: 'ALTER TABLE comments ADD COLUMN parent_comment_id INTEGER DEFAULT NULL REFERENCES comments(id) ON DELETE CASCADE' },
-    { table: 'photo_comments', column: 'parent_comment_id', definition: 'ALTER TABLE photo_comments ADD COLUMN parent_comment_id INTEGER DEFAULT NULL REFERENCES photo_comments(id) ON DELETE CASCADE' }
+    { table: 'photo_comments', column: 'parent_comment_id', definition: 'ALTER TABLE photo_comments ADD COLUMN parent_comment_id INTEGER DEFAULT NULL REFERENCES photo_comments(id) ON DELETE CASCADE' },
+    // User ID migrations
+    { table: 'votes', column: 'user_id', definition: 'ALTER TABLE votes ADD COLUMN user_id TEXT' },
+    { table: 'portion_votes', column: 'user_id', definition: 'ALTER TABLE portion_votes ADD COLUMN user_id TEXT' },
+    { table: 'comments', column: 'user_id', definition: 'ALTER TABLE comments ADD COLUMN user_id TEXT' },
+    { table: 'food_photos', column: 'user_id', definition: 'ALTER TABLE food_photos ADD COLUMN user_id TEXT' },
+    { table: 'photo_votes', column: 'user_id', definition: 'ALTER TABLE photo_votes ADD COLUMN user_id TEXT' },
+    { table: 'photo_comments', column: 'user_id', definition: 'ALTER TABLE photo_comments ADD COLUMN user_id TEXT' }
   ];
 
   migrations.forEach(({ table, column, definition }) => {

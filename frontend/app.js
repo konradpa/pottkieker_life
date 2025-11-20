@@ -23,6 +23,18 @@ const sortSelect = document.getElementById('sort-select');
 const openingTimesEl = document.getElementById('opening-times');
 const subtitleEl = document.querySelector('.subtitle');
 
+// Auth Helper
+async function fetchWithAuth(url, options = {}) {
+    const token = window.auth ? await window.auth.getToken() : null;
+
+    const headers = { ...options.headers };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return fetch(url, { ...options, headers });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     if (locationSelect) {
@@ -81,7 +93,7 @@ async function updateOpeningTimes(location) {
     openingTimesEl.style.display = 'block';
 
     try {
-        const response = await fetch(`${API_BASE}/meals/opening-times/${location}`);
+        const response = await fetchWithAuth(`${API_BASE}/meals/opening-times/${location}`);
         if (response.ok) {
             const data = await response.json();
             if (data.openingTimes) {
@@ -104,7 +116,7 @@ async function loadMeals() {
     hideError();
 
     try {
-        const response = await fetch(`${API_BASE}/meals/today?location=${currentLocation}`);
+        const response = await fetchWithAuth(`${API_BASE}/meals/today?location=${currentLocation}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -294,7 +306,7 @@ async function handleVote(e) {
 
         // If clicking an active button, remove the vote
         if (isActive) {
-            response = await fetch(`${API_BASE}/votes/${mealId}`, { method: 'DELETE' });
+            response = await fetchWithAuth(`${API_BASE}/votes/${mealId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Failed to remove vote');
             data = await response.json();
 
@@ -304,7 +316,7 @@ async function handleVote(e) {
             mealCard.querySelector('.vote-btn[data-vote="down"]').classList.remove('active');
 
             // Get updated vote counts
-            const countsResponse = await fetch(`${API_BASE}/votes/${mealId}`);
+            const countsResponse = await fetchWithAuth(`${API_BASE}/votes/${mealId}`);
             if (countsResponse.ok) {
                 const counts = await countsResponse.json();
                 data.upvotes = counts.upvotes;
@@ -312,7 +324,7 @@ async function handleVote(e) {
             }
         } else {
             // Cast / toggle vote. Backend toggles off if same type exists
-            response = await fetch(`${API_BASE}/votes/${mealId}`, {
+            response = await fetchWithAuth(`${API_BASE}/votes/${mealId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ vote_type: voteType })
@@ -393,7 +405,7 @@ async function loadComments(mealId) {
     commentsList.innerHTML = '<div class="loading">Loading comments...</div>';
 
     try {
-        const response = await fetch(`${API_BASE}/comments/${mealId}`);
+        const response = await fetchWithAuth(`${API_BASE}/comments/${mealId}`);
 
         if (!response.ok) {
             throw new Error('Failed to load comments');
@@ -483,7 +495,7 @@ async function handleDeleteMealComment(commentId, mealId) {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/comments/${commentId}`, {
+        const response = await fetchWithAuth(`${API_BASE}/comments/${commentId}`, {
             method: 'DELETE'
         });
 
@@ -561,7 +573,7 @@ async function handleReplySubmit(e, parentCommentId, mealId) {
     const comment_text = form.querySelector('[name="comment_text"]').value;
 
     try {
-        const response = await fetch(`${API_BASE}/comments/${mealId}`, {
+        const response = await fetchWithAuth(`${API_BASE}/comments/${mealId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -625,7 +637,7 @@ async function handleCommentSubmit(e) {
     const comment_text = form.querySelector('[name="comment_text"]').value;
 
     try {
-        const response = await fetch(`${API_BASE}/comments/${mealId}`, {
+        const response = await fetchWithAuth(`${API_BASE}/comments/${mealId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -839,7 +851,7 @@ function getNetVotes(meal) {
 async function openMealPhotosViewer(mealId, startIndex = 0, mealName = '') {
     try {
         // Fetch all photos for this meal
-        const response = await fetch(`${API_BASE}/photos/by-meal/${mealId}`);
+        const response = await fetchWithAuth(`${API_BASE}/photos/by-meal/${mealId}`);
         if (!response.ok) {
             throw new Error('Failed to load photos');
         }
@@ -875,7 +887,7 @@ async function openMealPhotosViewer(mealId, startIndex = 0, mealName = '') {
 // Handle photo like from image viewer
 async function handlePhotoLikeInViewer(photoId, currentLikedState) {
     try {
-        const resp = await fetch(`${API_BASE}/photos/${photoId}/vote`, { method: 'POST' });
+        const resp = await fetchWithAuth(`${API_BASE}/photos/${photoId}/vote`, { method: 'POST' });
         const data = await resp.json();
         if (!resp.ok) {
             throw new Error(data.error || 'Failed to update like');
@@ -899,7 +911,7 @@ window.openMealPhotosViewer = openMealPhotosViewer;
 // Toggle like for a photo from the meal modal
 async function handlePhotoLike(photoId, btnEl) {
     try {
-        const resp = await fetch(`${API_BASE}/photos/${photoId}/vote`, { method: 'POST' });
+        const resp = await fetchWithAuth(`${API_BASE}/photos/${photoId}/vote`, { method: 'POST' });
         const data = await resp.json();
         if (!resp.ok) {
             throw new Error(data.error || 'Failed to update like');

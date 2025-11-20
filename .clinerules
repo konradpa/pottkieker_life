@@ -1,0 +1,221 @@
+# Frontend Design System - Reactor HUD Aesthetic
+
+## Overview
+All frontend work MUST follow this "reactor HUD" design system: a dark, Nord-inspired cyberpunk UI with small monospace typography, tight cyan/teal borders, low-chroma charcoal backgrounds with subtle transparent gradients, neon cyan/teal accents, compact modules with literal bracketed headings, and quick hover transitions.
+
+## Design Pillars
+
+### Visual Language
+- Dark, low-chroma surfaces with neon cyan/teal accents
+- Boxy modules with crisp 2-3px borders; minimal radius (0-4px)
+- Small, monospace typography; bracketed/ASCII labeling for headings
+- Subtle linear gradients and transparent panes (no glossy glass)
+- Hover emits soft cyan glow; motion is quick and understated
+
+### Color Palette (Semantic)
+
+**Backgrounds:**
+- `--bg-0: #1e1e1e`
+- `--bg-1: #282c34`
+- `--bg-2: #2e3440`
+- `--bg-3: #292d35`
+- `--bg-4: #3b4252`
+
+**Text:**
+- `--text: #9cdef2` (icy cyan - primary text)
+- `--muted: #eceff4` (muted text)
+- `--text-gray: #828997`
+
+**Accents (cyan/teal):**
+- `--accent: #61afef` (primary)
+- `--accent-2: #56b6c2` (secondary)
+- `--accent-3: #88c0d0` (tertiary)
+- `--accent-4: #08c0d0`
+
+**Warm accents:**
+- `--warm: #fab387` (peach - primary warm)
+- `--warn: #e5c07b` (secondary warm)
+
+**Semantic:**
+- `--ok: #a3be8c` (success/green)
+- `--danger: #e06c75` (error/red)
+
+### Typography
+
+**Typeface:**
+```css
+--font-ui: "JetBrainsMono Nerd Font", "JetBrains Mono", ui-monospace, monospace;
+```
+
+**Sizes:**
+- `--size-xs: 8px`
+- `--size-s: 10px`
+- `--size-m: 12px`
+- `--size-l: 14px`
+- `--size-xl: 18px`
+- `--size-xxl: 34px` (hero slots)
+
+**Letter-spacing:**
+- `--track-tight: 1px`
+- `--track-wide: 4px` (for ASCII bars and labels - "scanline" look)
+
+### Borders, Radii, Depth
+
+**Border:**
+- `--bw: 2px` (standard modules)
+- `--bw-lg: 3px` (bars/containers)
+- Border color: cyan/teal (#61afef primary; #56b6c2 sides/hover)
+
+**Radius:**
+- `--br: 2px` (standard)
+- `--br-lg: 3px` (larger containers)
+- Keep it angular (0-4px range)
+
+**Effects:**
+- `--shadow-accent: 0 0 8px rgba(136,192,208,0.4)` (hover glow)
+- Subtle inner gradients for dimension
+- Backgrounds often transparent
+
+### Spacing + Sizing
+
+**Module spacing:**
+- Padding: 4-12px
+- Margins: 4-6px
+- Tight density; compact components
+- Fixed min-widths: 140-220px for HUD elements
+
+### Motion
+
+**Transitions:**
+- `--t-fast: 0.2s ease-in-out` (hover: border, color, bg)
+- `--t-med: 0.4s ease` (appear/opacity)
+- No large animations; quick, utilitarian feedback
+
+## Component Patterns
+
+### Module Card
+**Structure:**
+- 2px cyan border (`var(--accent)`)
+- 2px border-radius (`var(--br)`)
+- Dark background (`var(--bg-3)`)
+- Subtle left-to-right gradient overlay: `linear-gradient(to left, rgba(0,0,0,0.4), rgba(0,0,0,0))`
+
+**Typography:**
+- Small monospace label (10-12px)
+- Optional bracketed subhead like `[ RAM USAGE ]` or `[ CPU LOAD ]`
+
+**Hover state:**
+```css
+background: #4c566a;
+border-color: var(--accent-2);
+color: var(--accent-2);
+box-shadow: var(--shadow-accent);
+transition: var(--t-fast);
+```
+
+### Top Bar (Header)
+**Container:**
+- Background: `var(--bg-1)` (#282c34)
+- Border: 3px solid `var(--accent)` with side stripes in `var(--accent-2)`
+- Opacity: 95%
+
+**Modules:**
+- Pill-like boxes with 2px border, 2px radius
+- Tight padding (6-12px)
+- Active state: warm accent fill (`var(--warm)` #fab387) or teal with dark text
+
+### Search/Command Palette (Modal)
+**Container:**
+- Transparent window
+- 2px cyan border (`var(--accent)`)
+- 3px border-radius (`var(--br-lg)`)
+
+**Layout:**
+- Split: left image column, right content with entry + list
+
+**Selection:**
+- Background: #191919
+- Text: warm accent (`var(--warn)` #e5c07b)
+
+### ASCII/Scanner Elements
+**Styling:**
+- Bars and labels rendered with monospace glyphs
+- Letter-spacing: 1-4px (`var(--track-tight)` to `var(--track-wide)`)
+- Section labels with literal brackets: `[ CPU LOAD ]`, `[ NET ]`, `[ STORAGE ]`
+
+## Interaction States
+
+### Hover
+```css
+background: #4c566a;
+border-color: var(--accent-2);
+color: var(--accent-2);
+box-shadow: var(--shadow-accent);
+transition: var(--t-fast);
+```
+
+### Active/Selected
+- Fill with accent (teal or peach)
+- Invert text color
+
+### Tooltips
+- Dark background with teal border
+- Cyan text
+
+## Implementation Rules
+
+1. **ALWAYS use the CSS variables** defined above - never hardcode colors
+2. **ALWAYS use monospace fonts** for UI elements
+3. **ALWAYS keep borders 2-3px** with minimal radius (0-4px)
+4. **ALWAYS add bracketed labels** like `[ SECTION ]` for headings/modules
+5. **ALWAYS use quick transitions** (0.2s) for hover states
+6. **ALWAYS add subtle cyan glow** on hover for interactive elements
+7. **NEVER use glossy effects** or heavy drop shadows
+8. **NEVER use rounded corners** beyond 4px
+9. **NEVER use non-monospace fonts** in the UI
+10. **NEVER skip the hover glow** on clickable elements
+
+## Quick Reference for Common Elements
+
+**Button:**
+```css
+border: 2px solid var(--accent);
+border-radius: var(--br);
+background: var(--bg-3);
+color: var(--text);
+padding: 6px 12px;
+font-family: var(--font-ui);
+font-size: var(--size-m);
+transition: var(--t-fast);
+```
+
+**Button:hover:**
+```css
+background: #4c566a;
+border-color: var(--accent-2);
+box-shadow: var(--shadow-accent);
+```
+
+**Card/Container:**
+```css
+border: 2px solid var(--accent);
+border-radius: var(--br);
+background: var(--bg-3);
+background-image: linear-gradient(to left, rgba(0,0,0,0.4), rgba(0,0,0,0));
+padding: 8px 12px;
+```
+
+**Heading with brackets:**
+```html
+<h2>[ MEAL FEED ]</h2>
+```
+```css
+font-family: var(--font-ui);
+font-size: var(--size-l);
+letter-spacing: var(--track-tight);
+color: var(--accent);
+```
+
+---
+
+**One-line brief for LLM:** "Design a dark, Nord-inspired 'reactor HUD' UI: small monospace typography, tight 2px cyan/teal borders with 0-3px radius, low-chroma charcoal backgrounds with subtle transparent gradients, neon cyan/teal accents (#61afef, #56b6c2, #88c0d0), warm peach/orange highlights (#fab387) for states, compact modules labeled with literal bracketed headings (e.g., '[ CPU LOAD ]'), quick 0.2s hover transitions that tint borders/text to teal and add a soft cyan glow, and minimal shadows."

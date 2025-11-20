@@ -12,6 +12,7 @@ const commentsRouter = require('./routes/comments');
 const photosRouter = require('./routes/photos');
 const adminRouter = require('./routes/admin');
 const { ownershipTokenMiddleware } = require('./middleware/ownershipToken');
+const { authMiddleware } = require('./middleware/authMiddleware');
 
 // Initialize database
 require('./database');
@@ -41,9 +42,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(ownershipTokenMiddleware);
+app.use(authMiddleware);
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
@@ -60,6 +60,14 @@ app.use('/api/admin', adminRouter);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Config endpoint for frontend
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseKey: process.env.SUPABASE_ANON_KEY
+  });
 });
 
 // API root - list available endpoints
