@@ -15,6 +15,7 @@ async function initAuth() {
 
         if (!config.supabaseUrl || !config.supabaseKey) {
             console.warn('Supabase config missing');
+            updateAuthUI(null);
             return;
         }
 
@@ -23,10 +24,8 @@ async function initAuth() {
 
         // Check current session
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            currentUser = session.user;
-            updateAuthUI(currentUser);
-        }
+        currentUser = session?.user || null;
+        updateAuthUI(currentUser);
 
         // Listen for auth changes
         supabase.auth.onAuthStateChange((event, session) => {
@@ -42,6 +41,7 @@ async function initAuth() {
 
     } catch (err) {
         console.error('Auth initialization failed:', err);
+        updateAuthUI(null);
     }
 }
 
@@ -153,6 +153,7 @@ function showLoginModal() {
 // Auth Actions
 async function handleEmailLogin(e) {
     e.preventDefault();
+    if (!supabase) return;
     const email = document.getElementById('email-input').value;
     const password = document.getElementById('password-input').value;
     const errorEl = document.getElementById('auth-error');
@@ -172,6 +173,7 @@ async function handleEmailLogin(e) {
 }
 
 async function handleEmailSignup() {
+    if (!supabase) return;
     const email = document.getElementById('email-input').value;
     const password = document.getElementById('password-input').value;
     const errorEl = document.getElementById('auth-error');
@@ -196,6 +198,7 @@ async function handleEmailSignup() {
 }
 
 async function handleGoogleLogin() {
+    if (!supabase) return;
     const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
