@@ -3,6 +3,15 @@ const router = express.Router();
 const db = require('../database');
 const { hashIP } = require('../utils/hashIP');
 
+function getAuthorFromRequest(req) {
+  const user = req.user;
+  const username = user?.user_metadata?.username;
+  if (username && username.trim()) return username.trim();
+  const email = user?.email;
+  if (email) return email.split('@')[0];
+  return null;
+}
+
 /**
  * GET /api/comments/:mealId
  * Get all comments for a specific meal
@@ -46,13 +55,18 @@ router.get('/:mealId', (req, res) => {
  */
 router.post('/:mealId', express.json(), (req, res) => {
   const { mealId } = req.params;
-  const { author_name, comment_text, parent_comment_id = null } = req.body;
+  const { comment_text, parent_comment_id = null } = req.body;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
   const owner_token_hash = req.ownerTokenHash;
+  const author_name = getAuthorFromRequest(req);
+
+  if (!author_name) {
+    return res.status(401).json({ error: 'Login required to comment' });
+  }
 
   // Validate input
-  if (!author_name || !comment_text) {
-    return res.status(400).json({ error: 'Author name and comment text are required' });
+  if (!comment_text) {
+    return res.status(400).json({ error: 'Comment text is required' });
   }
 
   if (author_name.length > 50) {

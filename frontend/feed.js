@@ -20,6 +20,50 @@ const noPhotosDiv = document.getElementById('no-photos');
 let currentPhotos = [];
 let votedPhotos = new Set();
 let isUploading = false;
+const COMMENT_HELP_TEXT = '[ Login required to comment ]';
+
+async function fetchWithAuth(url, options = {}) {
+    const token = window.auth ? await window.auth.getToken() : null;
+    const headers = { ...options.headers };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return fetch(url, { ...options, headers });
+}
+
+function getCurrentUsername() {
+    const user = window.auth?.getUser?.();
+    if (!user) return null;
+    const username = user.user_metadata?.username;
+    if (username && username.trim()) return username.trim();
+    const email = user.email;
+    if (email) return email.split('@')[0];
+    return null;
+}
+
+function applyCommentIdentityToForm(form) {
+    if (!form) return;
+    const username = getCurrentUsername();
+    const nameInput = form.querySelector('[name="author_name"], input[id^="comment-author-"]');
+    const submitBtn = form.querySelector('button[type="submit"], .comment-submit-btn');
+    const helper = form.querySelector('.comment-user-helper');
+
+    if (nameInput) {
+        nameInput.value = username || '';
+        nameInput.readOnly = true;
+        nameInput.disabled = !username;
+        nameInput.placeholder = username ? username : 'Login to comment';
+        nameInput.title = username ? 'Username comes from your account' : 'Login to comment';
+    }
+    if (submitBtn) submitBtn.disabled = !username;
+    if (helper) helper.textContent = username ? `[ Posting as ${username} ]` : COMMENT_HELP_TEXT;
+}
+
+function syncAllCommentForms() {
+    document.querySelectorAll('.photo-comments .comment-form').forEach(applyCommentIdentityToForm);
+}
+
+document.addEventListener('auth:changed', syncAllCommentForms);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -246,6 +290,8 @@ function renderPhotos() {
         const photoCard = createPhotoCard(photo);
         photosContainer.appendChild(photoCard);
     });
+
+    syncAllCommentForms();
 }
 
 // Create photo card
@@ -285,6 +331,7 @@ function createPhotoCard(photo) {
             <div class="comment-form">
                 <input type="text" placeholder="Your name" id="comment-author-${photo.id}" maxlength="50">
                 <textarea placeholder="Add a comment..." id="comment-text-${photo.id}" maxlength="500"></textarea>
+                <div class="comment-user-helper"></div>
                 <button class="comment-submit-btn" onclick="handleAddComment(${photo.id})">Post Comment</button>
             </div>
             <div class="comments-list" id="comments-list-${photo.id}">
@@ -371,6 +418,7 @@ async function toggleComments(photoId) {
 
     if (isHidden) {
         commentsSection.style.display = 'block';
+        applyCommentIdentityToForm(commentsSection.querySelector('.comment-form'));
         loadComments(photoId);
     } else {
         commentsSection.style.display = 'none';
@@ -382,7 +430,7 @@ async function loadComments(photoId) {
     const commentsList = document.getElementById(`comments-list-${photoId}`);
 
     try {
-        const response = await fetch(`/api/photos/${photoId}/comments`);
+        const response = await fetchWithAuth(`/api/photos/${photoId}/comments`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -390,6 +438,7 @@ async function loadComments(photoId) {
         }
 
         renderComments(photoId, data.comments || []);
+        syncAllCommentForms();
     } catch (error) {
         commentsList.innerHTML = `<p style="color: var(--danger); font-size: 0.9em;">${error.message}</p>`;
     }
@@ -434,6 +483,7 @@ function renderPhotoComment(comment, photoId) {
                 <form class="comment-form reply-form" onsubmit="handlePhotoReplySubmit(event, ${comment.id}, ${photoId})">
                     <input type="text" name="author_name" placeholder="Your name" maxlength="50" required>
                     <textarea name="comment_text" placeholder="Your reply..." maxlength="500" required></textarea>
+                    <div class="comment-user-helper"></div>
                     <div class="reply-form-actions">
                         <button type="submit">Post Reply</button>
                         <button type="button" onclick="handleCancelPhotoReply(${comment.id})">Cancel</button>
@@ -465,24 +515,27 @@ function renderComments(photoId, comments) {
 
 // Handle add comment
 async function handleAddComment(photoId) {
-    const authorInput = document.getElementById(`comment-author-${photoId}`);
-    const textInput = document.getElementById(`comment-text-${photoId}`);
+    const username = getCurrentUsername();
+    if (!username) {
+        showError('Login required to comment.');
+        return;
+    }
 
-    const author_name = authorInput.value.trim();
+    const textInput = document.getElementById(`comment-text-${photoId}`);
     const comment_text = textInput.value.trim();
 
-    if (!author_name || !comment_text) {
-        showError('Name and comment are required');
+    if (!comment_text) {
+        showError('Comment is required');
         return;
     }
 
     try {
-        const response = await fetch(`/api/photos/${photoId}/comments`, {
+        const response = await fetchWithAuth(`/api/photos/${photoId}/comments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ author_name, comment_text })
+            body: JSON.stringify({ author_name: username, comment_text })
         });
 
         const data = await response.json();
@@ -492,7 +545,6 @@ async function handleAddComment(photoId) {
         }
 
         // Clear form
-        authorInput.value = '';
         textInput.value = '';
 
         // Reload comments
@@ -563,6 +615,7 @@ function handleShowPhotoReplyForm(commentId, photoId) {
         // Focus on the name input
         const nameInput = replyFormContainer.querySelector('[name="author_name"]');
         if (nameInput) nameInput.focus();
+        applyCommentIdentityToForm(replyFormContainer.querySelector('form'));
     }
 }
 
@@ -582,17 +635,25 @@ async function handlePhotoReplySubmit(e, parentCommentId, photoId) {
     e.preventDefault();
 
     const form = e.target;
-    const author_name = form.querySelector('[name="author_name"]').value;
-    const comment_text = form.querySelector('[name="comment_text"]').value;
+    const username = getCurrentUsername();
+    if (!username) {
+        showError('Login required to comment.');
+        return;
+    }
+    const comment_text = form.querySelector('[name="comment_text"]').value.trim();
+    if (!comment_text) {
+        showError('Comment is required');
+        return;
+    }
 
     try {
-        const response = await fetch(`/api/photos/${photoId}/comments`, {
+        const response = await fetchWithAuth(`/api/photos/${photoId}/comments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                author_name,
+                author_name: username,
                 comment_text,
                 parent_comment_id: parentCommentId
             })

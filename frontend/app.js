@@ -22,6 +22,7 @@ const errorEl = document.getElementById('error');
 const sortSelect = document.getElementById('sort-select');
 const openingTimesEl = document.getElementById('opening-times');
 const subtitleEl = document.querySelector('.subtitle');
+const COMMENT_HELP_TEXT = '[ Login required to comment ]';
 
 // Auth Helper
 async function fetchWithAuth(url, options = {}) {
@@ -34,6 +35,44 @@ async function fetchWithAuth(url, options = {}) {
 
     return fetch(url, { ...options, headers });
 }
+
+function getCurrentUsername() {
+    const user = window.auth?.getUser?.();
+    if (!user) return null;
+    const username = user.user_metadata?.username;
+    if (username && username.trim()) return username.trim();
+    const email = user.email;
+    if (email) return email.split('@')[0];
+    return null;
+}
+
+function applyCommentIdentityToForm(form) {
+    if (!form) return;
+    const username = getCurrentUsername();
+    const nameInput = form.querySelector('[name="author_name"]');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const helper = form.querySelector('.comment-user-helper');
+
+    if (nameInput) {
+        nameInput.value = username || '';
+        nameInput.readOnly = true;
+        nameInput.disabled = !username;
+        nameInput.placeholder = username ? username : 'Login to comment';
+        nameInput.title = username ? 'Username comes from your account' : 'Login to comment';
+    }
+    if (submitBtn) {
+        submitBtn.disabled = !username;
+    }
+    if (helper) {
+        helper.textContent = username ? `[ Posting as ${username} ]` : COMMENT_HELP_TEXT;
+    }
+}
+
+function syncAllCommentForms() {
+    document.querySelectorAll('.comment-form').forEach(form => applyCommentIdentityToForm(form));
+}
+
+document.addEventListener('auth:changed', syncAllCommentForms);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -65,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMeals();
         });
     }
+
 });
 
 function updateSubtitleWithDate(dateString) {
@@ -269,6 +309,7 @@ function createMealCard(meal) {
                 <form class="comment-form" data-meal-id="${meal.id}">
                     <input type="text" name="author_name" placeholder="Your name" required maxlength="50">
                     <textarea name="comment_text" placeholder="Your comment (max 500 chars)" required maxlength="500"></textarea>
+                    <div class="comment-user-helper"></div>
                     <button type="submit">Post Comment</button>
                 </form>
             </div>
@@ -292,6 +333,8 @@ function attachEventListeners() {
     document.querySelectorAll('.comment-form').forEach(form => {
         form.addEventListener('submit', handleCommentSubmit);
     });
+
+    syncAllCommentForms();
 }
 
 // Handle voting
@@ -392,6 +435,7 @@ async function handleToggleComments(e) {
     if (commentsSection.style.display === 'none') {
         commentsSection.style.display = 'block';
         btn.innerHTML = `💬 Hide Comments (${count})`;
+        applyCommentIdentityToForm(commentsSection.querySelector('.comment-form'));
         await loadComments(mealId);
     } else {
         commentsSection.style.display = 'none';
@@ -413,6 +457,7 @@ async function loadComments(mealId) {
 
         const data = await response.json();
         displayComments(mealId, data.comments);
+        syncAllCommentForms();
 
     } catch (error) {
         console.error('Error loading comments:', error);
@@ -459,6 +504,7 @@ function renderComment(comment, mealId) {
                 <form class="comment-form reply-form" onsubmit="handleReplySubmit(event, ${comment.id}, ${mealId})">
                     <input type="text" name="author_name" placeholder="Your name" maxlength="50" required>
                     <textarea name="comment_text" placeholder="Your reply..." maxlength="500" required></textarea>
+                    <div class="comment-user-helper"></div>
                     <div class="reply-form-actions">
                         <button type="submit">Post Reply</button>
                         <button type="button" onclick="handleCancelReply(${comment.id})">Cancel</button>
@@ -550,6 +596,7 @@ function handleShowReplyForm(commentId, mealId) {
         // Focus on the name input
         const nameInput = replyFormContainer.querySelector('[name="author_name"]');
         if (nameInput) nameInput.focus();
+        applyCommentIdentityToForm(replyFormContainer.querySelector('form'));
     }
 }
 
@@ -569,8 +616,16 @@ async function handleReplySubmit(e, parentCommentId, mealId) {
     e.preventDefault();
 
     const form = e.target;
-    const author_name = form.querySelector('[name="author_name"]').value;
-    const comment_text = form.querySelector('[name="comment_text"]').value;
+    const username = getCurrentUsername();
+    if (!username) {
+        showError('Login required to comment.');
+        return;
+    }
+    const comment_text = form.querySelector('[name="comment_text"]').value.trim();
+    if (!comment_text) {
+        showError('Comment cannot be empty.');
+        return;
+    }
 
     try {
         const response = await fetchWithAuth(`${API_BASE}/comments/${mealId}`, {
@@ -579,7 +634,7 @@ async function handleReplySubmit(e, parentCommentId, mealId) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                author_name,
+                author_name: username,
                 comment_text,
                 parent_comment_id: parentCommentId
             })
@@ -633,8 +688,17 @@ async function handleCommentSubmit(e) {
 
     const form = e.target;
     const mealId = form.dataset.mealId;
-    const author_name = form.querySelector('[name="author_name"]').value;
-    const comment_text = form.querySelector('[name="comment_text"]').value;
+    const username = getCurrentUsername();
+    if (!username) {
+        showError('Login required to comment.');
+        return;
+    }
+
+    const comment_text = form.querySelector('[name="comment_text"]').value.trim();
+    if (!comment_text) {
+        showError('Comment cannot be empty.');
+        return;
+    }
 
     try {
         const response = await fetchWithAuth(`${API_BASE}/comments/${mealId}`, {
@@ -642,7 +706,7 @@ async function handleCommentSubmit(e) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ author_name, comment_text })
+            body: JSON.stringify({ author_name: username, comment_text })
         });
 
         let responseData = {};

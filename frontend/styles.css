@@ -566,6 +566,176 @@ h1 {
     transform: translateY(-1px);
 }
 
+.modal-open {
+    overflow: hidden;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 24, 36, 0.82);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 999;
+}
+
+.modal-content {
+    width: min(480px, 100%);
+    background: linear-gradient(135deg, rgba(97, 175, 239, 0.08), rgba(86, 182, 194, 0.02)), var(--bg-2);
+    border: var(--bw-lg) solid var(--accent);
+    border-radius: var(--br-lg);
+    box-shadow: 0 14px 48px rgba(0, 0, 0, 0.45), var(--shadow-accent);
+    color: var(--text);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(97, 175, 239, 0.35);
+    background: linear-gradient(90deg, rgba(8, 192, 208, 0.12), transparent);
+}
+
+.modal-header h2 {
+    font-size: var(--size-l);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: var(--accent-bright);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    transition: color var(--t-fast), transform var(--t-fast);
+}
+
+.close-btn:hover {
+    color: var(--accent-bright);
+    transform: rotate(4deg);
+}
+
+.modal-body {
+    padding: 18px 18px 22px;
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.tab-btn {
+    flex: 1;
+    background: var(--bg-3);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: var(--br);
+    cursor: pointer;
+    letter-spacing: var(--track-tight);
+    text-transform: uppercase;
+    transition: all var(--t-fast);
+    font-weight: 700;
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #1e1e2e;
+    box-shadow: var(--shadow-accent);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.form-group label {
+    text-transform: uppercase;
+    letter-spacing: var(--track-tight);
+    font-size: var(--size-s);
+    color: var(--accent-3);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-1);
+    border: 1px solid rgba(97, 175, 239, 0.45);
+    border-radius: var(--br);
+    color: var(--text);
+    font-family: inherit;
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.action-btn, .google-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #1e1e2e;
+    border: 1px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: var(--br);
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: var(--track-tight);
+    text-transform: uppercase;
+    transition: all var(--t-fast);
+    width: 100%;
+}
+
+.action-btn:hover, .google-btn:hover {
+    box-shadow: var(--shadow-accent);
+    transform: translateY(-1px);
+}
+
+.text-btn {
+    background: none;
+    border: none;
+    color: var(--accent-3);
+    cursor: pointer;
+    letter-spacing: var(--track-tight);
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 6px 8px;
+}
+
+.text-btn:hover {
+    color: var(--accent-bright);
+    text-decoration: underline;
+}
+
+.error-msg {
+    min-height: 16px;
+    margin-top: 8px;
+    font-size: var(--size-s);
+    color: var(--danger-bright);
+    letter-spacing: var(--track-tight);
+}
+
 .tag-filter-list {
     display: flex;
     flex-wrap: wrap;
@@ -850,6 +1020,12 @@ h1 {
     color: #1e1e2e;
     border-color: var(--accent-bright);
     box-shadow: var(--shadow-accent);
+}
+
+.comment-user-helper {
+    font-size: var(--size-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--track-tight);
 }
 
 /* Reply Button */

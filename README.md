@@ -15,6 +15,10 @@ Source code for [pottkieker.life](https://pottkieker.life)
   - CORS configuration for cross-origin requests
   - IP hashing for privacy-preserving rate limiting
   - Ownership token-based middleware for photo/comment authorization
+- **Authentication**:
+  - Supabase Auth (email/password + Google OAuth)
+  - Username support surfaced in UI (email, Google)
+  - Comments use the authenticated username (login required to comment)
 - **Task Scheduling**: node-cron for automated meal data fetching and cleanup
 - **XML Parsing**: xml2js for processing OpenMensa XML feeds
 

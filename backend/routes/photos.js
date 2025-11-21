@@ -100,6 +100,15 @@ function getTodayDate() {
   return getBerlinDate();
 }
 
+function getAuthorFromRequest(req) {
+  const user = req.user;
+  const username = user?.user_metadata?.username;
+  if (username && username.trim()) return username.trim();
+  const email = user?.email;
+  if (email) return email.split('@')[0];
+  return null;
+}
+
 /**
  * Strip EXIF metadata from uploaded photo for privacy
  * @param {string} filePath - Path to the uploaded file
@@ -509,16 +518,17 @@ router.get('/:photoId/comments', (req, res) => {
  */
 router.post('/:photoId/comments', express.json(), (req, res) => {
   const { photoId} = req.params;
-  const { author_name, comment_text, parent_comment_id = null } = req.body;
+  const { comment_text, parent_comment_id = null } = req.body;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
+  const author_name = getAuthorFromRequest(req);
 
-  // Validate input
-  if (!author_name || !comment_text) {
-    return res.status(400).json({ error: 'Author name and comment text are required' });
+  if (!author_name) {
+    return res.status(401).json({ error: 'Login required to comment' });
   }
 
-  if (author_name.length > 50) {
-    return res.status(400).json({ error: 'Author name too long (max 50 characters)' });
+  // Validate input
+  if (!comment_text) {
+    return res.status(400).json({ error: 'Comment text is required' });
   }
 
   if (comment_text.length > 500) {
