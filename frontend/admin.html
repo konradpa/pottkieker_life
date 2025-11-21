@@ -5,76 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - UHH Mensa</title>
     <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="styles.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-3);
+            border: var(--bw) solid var(--accent);
+            border-radius: var(--br);
         }
 
-        .login-box, .admin-panel {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        .admin-header h1 {
+            color: var(--accent);
+            font-family: var(--font-ui);
+            letter-spacing: var(--track-tight);
         }
 
-        .login-box {
-            max-width: 400px;
+        .access-denied {
+            max-width: 600px;
             margin: 100px auto;
+            padding: 40px;
+            background: var(--bg-3);
+            border: var(--bw) solid var(--danger);
+            border-radius: var(--br-lg);
+            text-align: center;
         }
 
-        h1, h2 {
-            color: #333;
+        .access-denied h1 {
+            color: var(--danger);
+            font-family: var(--font-ui);
             margin-bottom: 20px;
         }
 
-        input[type="password"], input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-            margin-bottom: 15px;
-        }
-
-        button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s;
-        }
-
-        button:hover {
-            background: #5568d3;
-        }
-
-        button.danger {
-            background: #e74c3c;
-        }
-
-        button.danger:hover {
-            background: #c0392b;
-        }
-
-        .hidden {
-            display: none;
+        .access-denied p {
+            color: var(--text);
+            font-family: var(--font-ui);
+            font-size: var(--size-m);
+            margin-bottom: 20px;
         }
 
         .stats {
@@ -85,21 +61,33 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--bg-3);
+            background-image: linear-gradient(to left, rgba(0,0,0,0.4), rgba(0,0,0,0));
+            border: var(--bw) solid var(--accent);
+            border-radius: var(--br);
             padding: 20px;
-            border-radius: 8px;
             text-align: center;
+            transition: var(--t-fast);
+        }
+
+        .stat-card:hover {
+            background: #4c566a;
+            border-color: var(--accent-2);
+            box-shadow: var(--shadow-accent);
         }
 
         .stat-card h3 {
-            font-size: 14px;
-            opacity: 0.9;
+            color: var(--accent-2);
+            font-family: var(--font-ui);
+            font-size: var(--size-m);
+            letter-spacing: var(--track-tight);
             margin-bottom: 10px;
         }
 
         .stat-card .value {
-            font-size: 32px;
+            color: var(--warm);
+            font-family: var(--font-ui);
+            font-size: var(--size-xxl);
             font-weight: bold;
         }
 
@@ -107,23 +95,33 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
+            border-bottom: var(--bw) solid var(--accent);
         }
 
         .tab {
-            padding: 10px 20px;
-            background: none;
-            border: none;
+            padding: 12px 24px;
+            background: var(--bg-3);
+            border: var(--bw) solid var(--accent);
+            border-bottom: none;
             cursor: pointer;
-            font-size: 16px;
-            color: #666;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
+            font-family: var(--font-ui);
+            font-size: var(--size-m);
+            color: var(--text);
+            border-radius: var(--br) var(--br) 0 0;
+            margin-bottom: calc(-1 * var(--bw));
+            transition: var(--t-fast);
+        }
+
+        .tab:hover {
+            background: #4c566a;
+            border-color: var(--accent-2);
+            color: var(--accent-2);
         }
 
         .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+            background: var(--bg-1);
+            color: var(--warm);
+            border-bottom: var(--bw) solid var(--bg-1);
         }
 
         .tab-content {
@@ -141,9 +139,16 @@
         }
 
         .photo-card {
-            background: #f5f5f5;
-            border-radius: 8px;
+            background: var(--bg-3);
+            border: var(--bw) solid var(--accent);
+            border-radius: var(--br);
             overflow: hidden;
+            transition: var(--t-fast);
+        }
+
+        .photo-card:hover {
+            border-color: var(--accent-2);
+            box-shadow: var(--shadow-accent);
         }
 
         .photo-card img {
@@ -158,8 +163,9 @@
 
         .photo-card .info p {
             margin: 5px 0;
-            font-size: 14px;
-            color: #666;
+            font-family: var(--font-ui);
+            font-size: var(--size-s);
+            color: var(--text);
         }
 
         .photo-card button {
@@ -173,13 +179,21 @@
         }
 
         .comment-item {
-            background: #f5f5f5;
+            background: var(--bg-3);
+            border: var(--bw) solid var(--accent);
+            border-radius: var(--br);
             padding: 15px;
-            border-radius: 8px;
             margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
             align-items: start;
+            gap: 15px;
+            transition: var(--t-fast);
+        }
+
+        .comment-item:hover {
+            border-color: var(--accent-2);
+            box-shadow: var(--shadow-accent);
         }
 
         .comment-item .content {
@@ -187,48 +201,62 @@
         }
 
         .comment-item .meta {
-            font-size: 12px;
-            color: #999;
+            font-family: var(--font-ui);
+            font-size: var(--size-xs);
+            color: var(--text-gray);
             margin-bottom: 8px;
         }
 
         .comment-item .text {
-            color: #333;
+            font-family: var(--font-ui);
+            font-size: var(--size-m);
+            color: var(--text);
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text);
+            font-family: var(--font-ui);
+            font-size: var(--size-l);
         }
 
-        .error {
-            color: #e74c3c;
-            margin-top: 10px;
+        .danger-btn {
+            background: linear-gradient(135deg, var(--danger), #c0392b);
+            border-color: var(--danger);
+            color: #fff;
         }
 
-        .success {
-            color: #27ae60;
-            margin-top: 10px;
+        .danger-btn:hover {
+            background: linear-gradient(135deg, #c0392b, var(--danger));
+            box-shadow: 0 0 8px rgba(224, 108, 117, 0.4);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Login Screen -->
-        <div id="loginScreen" class="login-box">
-            <h1>Admin Login</h1>
-            <input type="password" id="passwordInput" placeholder="Admin Password" />
-            <button onclick="login()">Login</button>
-            <div id="loginError" class="error hidden"></div>
+    <div class="container admin-container">
+        <header>
+            <h1>[ ADMIN PANEL ]</h1>
+            <div id="auth-container" class="auth-container"></div>
+        </header>
+
+        <!-- Loading Screen -->
+        <div id="loadingScreen" class="loading">
+            [ LOADING... ]
+        </div>
+
+        <!-- Access Denied Screen -->
+        <div id="accessDenied" class="access-denied" style="display: none;">
+            <h1>[ ACCESS DENIED ]</h1>
+            <p>You do not have administrator privileges.</p>
+            <p>Admin access is restricted to authorized @uni-hamburg.de email addresses.</p>
+            <button class="auth-btn" onclick="window.location.href='index.html'">[ RETURN TO HOME ]</button>
         </div>
 
         <!-- Admin Panel -->
-        <div id="adminPanel" class="admin-panel hidden">
-            <div class="header">
-                <h1>Admin Panel</h1>
-                <button onclick="logout()">Logout</button>
+        <div id="adminPanel" style="display: none;">
+            <div class="admin-header">
+                <h1>[ ADMIN DASHBOARD ]</h1>
             </div>
 
             <!-- Statistics -->
@@ -236,70 +264,67 @@
 
             <!-- Tabs -->
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('photos')">Photos</button>
-                <button class="tab" onclick="switchTab('comments')">Comments</button>
+                <button class="tab active" onclick="switchTab('photos')">[ PHOTOS ]</button>
+                <button class="tab" onclick="switchTab('comments')">[ COMMENTS ]</button>
             </div>
 
             <!-- Photos Tab -->
             <div id="photosTab" class="tab-content active">
-                <h2>Manage Photos</h2>
                 <div id="photoGrid" class="photo-grid"></div>
             </div>
 
             <!-- Comments Tab -->
             <div id="commentsTab" class="tab-content">
-                <h2>Manage Comments</h2>
                 <div id="commentList" class="comment-list"></div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth.js"></script>
     <script>
-        let authToken = localStorage.getItem('adminToken');
+        let isAdmin = false;
 
-        // Check if already logged in
-        if (authToken) {
-            showAdminPanel();
-        }
+        // Wait for auth to initialize
+        async function checkAdminAccess() {
+            // Wait a bit for auth.js to initialize
+            await new Promise(resolve => setTimeout(resolve, 500));
 
-        function login() {
-            const password = document.getElementById('passwordInput').value;
-            const errorEl = document.getElementById('loginError');
+            const user = window.AuthModule?.getUser();
 
-            fetch('/api/admin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.token) {
-                    authToken = data.token;
-                    localStorage.setItem('adminToken', authToken);
-                    errorEl.classList.add('hidden');
+            if (!user) {
+                // Not logged in, show access denied
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('accessDenied').style.display = 'block';
+                return;
+            }
+
+            // Check if user is admin by calling backend
+            try {
+                const token = await window.AuthModule.getAuthToken();
+                const response = await fetch('/api/admin/check', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+
+                if (data.isAdmin) {
+                    isAdmin = true;
                     showAdminPanel();
                 } else {
-                    errorEl.textContent = data.error || 'Login failed';
-                    errorEl.classList.remove('hidden');
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('accessDenied').style.display = 'block';
                 }
-            })
-            .catch(err => {
-                errorEl.textContent = 'Connection error';
-                errorEl.classList.remove('hidden');
-            });
-        }
-
-        function logout() {
-            authToken = null;
-            localStorage.removeItem('adminToken');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('adminPanel').classList.add('hidden');
-            document.getElementById('passwordInput').value = '';
+            } catch (err) {
+                console.error('Admin check error:', err);
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('accessDenied').style.display = 'block';
+            }
         }
 
         function showAdminPanel() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('adminPanel').classList.remove('hidden');
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
             loadStats();
             loadPhotos();
             loadComments();
@@ -315,73 +340,80 @@
             document.getElementById(tab + 'Tab').classList.add('active');
         }
 
-        function loadStats() {
-            fetch('/api/admin/stats', {
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            })
-            .then(res => res.json())
-            .then(stats => {
+        async function getAuthHeaders() {
+            const token = await window.AuthModule.getAuthToken();
+            return { 'Authorization': `Bearer ${token}` };
+        }
+
+        async function loadStats() {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch('/api/admin/stats', { headers });
+                const stats = await res.json();
+
                 const container = document.getElementById('statsContainer');
                 container.innerHTML = `
                     <div class="stat-card">
-                        <h3>Total Photos</h3>
+                        <h3>[ TOTAL PHOTOS ]</h3>
                         <div class="value">${stats.total_photos || 0}</div>
                     </div>
                     <div class="stat-card">
-                        <h3>Photos Today</h3>
+                        <h3>[ PHOTOS TODAY ]</h3>
                         <div class="value">${stats.photos_today || 0}</div>
                     </div>
                     <div class="stat-card">
-                        <h3>Total Comments</h3>
+                        <h3>[ TOTAL COMMENTS ]</h3>
                         <div class="value">${(stats.total_meal_comments || 0) + (stats.total_photo_comments || 0)}</div>
                     </div>
                     <div class="stat-card">
-                        <h3>Storage Used</h3>
+                        <h3>[ STORAGE USED ]</h3>
                         <div class="value">${stats.storage_mb || 0} MB</div>
                     </div>
                 `;
-            })
-            .catch(handleAuthError);
+            } catch (err) {
+                console.error('Failed to load stats:', err);
+            }
         }
 
-        function loadPhotos() {
-            fetch('/api/admin/photos', {
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            })
-            .then(res => res.json())
-            .then(data => {
+        async function loadPhotos() {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch('/api/admin/photos', { headers });
+                const data = await res.json();
+
                 const grid = document.getElementById('photoGrid');
                 if (!data.photos || data.photos.length === 0) {
-                    grid.innerHTML = '<p>No photos found</p>';
+                    grid.innerHTML = '<p style="color: var(--text); font-family: var(--font-ui);">[ NO PHOTOS FOUND ]</p>';
                     return;
                 }
 
                 grid.innerHTML = data.photos.map(photo => `
                     <div class="photo-card">
-                        <img src="${photo.photo_url}" alt="${photo.meal_name}" />
+                        <img src="${photo.photo_url}" alt="${photo.meal_name || 'Photo'}" />
                         <div class="info">
-                            <p><strong>${photo.meal_name}</strong></p>
-                            <p>${photo.mensa_location}</p>
-                            <p>By: ${photo.author_name}</p>
+                            <p><strong>${photo.meal_name || 'Unknown Meal'}</strong></p>
+                            <p>${photo.mensa_location || 'Unknown Location'}</p>
+                            <p>By: ${photo.author_name || 'Anonymous'}</p>
                             <p>${photo.caption || 'No caption'}</p>
-                            <p>${photo.vote_count} likes, ${photo.comment_count} comments</p>
-                            <button class="danger" onclick="deletePhoto(${photo.id})">Delete Photo</button>
+                            <p>${photo.vote_count || 0} likes, ${photo.comment_count || 0} comments</p>
+                            <button class="auth-btn danger-btn" onclick="deletePhoto(${photo.id})">[ DELETE ]</button>
                         </div>
                     </div>
                 `).join('');
-            })
-            .catch(handleAuthError);
+            } catch (err) {
+                console.error('Failed to load photos:', err);
+            }
         }
 
-        function loadComments() {
-            fetch('/api/admin/comments', {
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            })
-            .then(res => res.json())
-            .then(data => {
+        async function loadComments() {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch('/api/admin/comments', { headers });
+                const data = await res.json();
+
                 const list = document.getElementById('commentList');
                 if (!data.comments || data.comments.length === 0) {
-                    list.innerHTML = '<p>No comments found</p>';
+                    list.innerHTML = '<p style="color: var(--text); font-family: var(--font-ui);">[ NO COMMENTS FOUND ]</p>';
                     return;
                 }
 
@@ -389,66 +421,73 @@
                     <div class="comment-item">
                         <div class="content">
                             <div class="meta">
-                                ${comment.type === 'meal' ? 'Meal' : 'Photo'} comment by <strong>${comment.author_name}</strong> on ${comment.ref_name || 'Unknown'}
+                                ${comment.type === 'meal' ? 'MEAL' : 'PHOTO'} COMMENT BY <strong>${comment.author_name || 'Anonymous'}</strong> ON ${comment.ref_name || 'Unknown'}
                             </div>
                             <div class="text">${comment.comment_text}</div>
                         </div>
-                        <button class="danger" onclick="deleteComment('${comment.type}', ${comment.id})">Delete</button>
+                        <button class="auth-btn danger-btn" onclick="deleteComment('${comment.type}', ${comment.id})">[ DELETE ]</button>
                     </div>
                 `).join('');
-            })
-            .catch(handleAuthError);
+            } catch (err) {
+                console.error('Failed to load comments:', err);
+            }
         }
 
-        function deletePhoto(photoId) {
-            if (!confirm('Delete this photo permanently?')) return;
+        async function deletePhoto(photoId) {
+            if (!confirm('Delete this photo permanently? This action cannot be undone.')) return;
 
-            fetch(`/api/admin/photos/${photoId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            })
-            .then(res => res.json())
-            .then(data => {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch(`/api/admin/photos/${photoId}`, {
+                    method: 'DELETE',
+                    headers
+                });
+                const data = await res.json();
+
                 if (data.success) {
                     loadPhotos();
                     loadStats();
                 } else {
-                    alert('Failed to delete photo');
+                    alert('Failed to delete photo: ' + (data.error || 'Unknown error'));
                 }
-            })
-            .catch(handleAuthError);
+            } catch (err) {
+                console.error('Delete error:', err);
+                alert('Failed to delete photo');
+            }
         }
 
-        function deleteComment(type, commentId) {
-            if (!confirm('Delete this comment permanently?')) return;
+        async function deleteComment(type, commentId) {
+            if (!confirm('Delete this comment permanently? This action cannot be undone.')) return;
 
-            fetch(`/api/admin/comments/${type}/${commentId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            })
-            .then(res => res.json())
-            .then(data => {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch(`/api/admin/comments/${type}/${commentId}`, {
+                    method: 'DELETE',
+                    headers
+                });
+                const data = await res.json();
+
                 if (data.success) {
                     loadComments();
                     loadStats();
                 } else {
-                    alert('Failed to delete comment');
+                    alert('Failed to delete comment: ' + (data.error || 'Unknown error'));
                 }
-            })
-            .catch(handleAuthError);
-        }
-
-        function handleAuthError(err) {
-            console.error(err);
-            if (err.status === 401 || err.status === 403) {
-                logout();
+            } catch (err) {
+                console.error('Delete error:', err);
+                alert('Failed to delete comment');
             }
         }
 
-        // Handle enter key on password input
-        document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') login();
+        // Listen for auth changes
+        document.addEventListener('auth:changed', () => {
+            if (!isAdmin) {
+                checkAdminAccess();
+            }
         });
+
+        // Check access on page load
+        checkAdminAccess();
     </script>
 </body>
 </html>

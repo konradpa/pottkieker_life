@@ -1,61 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-
-// Middleware to verify admin JWT token
+// Middleware to verify admin access (Supabase only)
 function verifyAdmin(req, res, next) {
-  // Supabase/whitelist admin bypass
+  // Check if user is admin (set by authMiddleware based on ADMIN_EMAILS)
   if (req.isAdmin) {
     req.admin = { role: 'admin', source: 'supabase' };
     return next();
   }
 
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    req.admin = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
+  // No admin privileges
+  return res.status(403).json({ error: 'Admin access required' });
 }
 
 /**
- * POST /api/admin/login
- * Admin login
- * Body: { password: string }
+ * GET /api/admin/check
+ * Check if current user is admin
  */
-router.post('/login', (req, res) => {
-  const { password } = req.body;
-
-  if (!password) {
-    return res.status(400).json({ error: 'Password required' });
-  }
-
-  // Simple password check (in production, use bcrypt hash comparison)
-  if (password === ADMIN_PASSWORD) {
-    const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '24h' });
-    res.json({ success: true, token });
-  } else {
-    res.status(401).json({ error: 'Invalid password' });
-  }
+router.get('/check', (req, res) => {
+  res.json({ isAdmin: req.isAdmin || false });
 });
 
 /**
