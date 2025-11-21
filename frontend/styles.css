@@ -597,12 +597,12 @@ h1 {
     top: 100%;
     right: 0;
     background: var(--bg-2);
-    border: 1px solid var(--accent);
+    border: var(--bw) solid var(--accent);
     border-radius: var(--br);
     padding: 12px;
     margin-top: 6px;
     min-width: 220px;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), var(--shadow-accent);
     display: none;
     z-index: 20;
 }
@@ -627,7 +627,7 @@ h1 {
 .user-menu input {
     padding: 7px 9px;
     background: var(--bg-4);
-    border: 1px solid var(--accent-2);
+    border: var(--bw) solid var(--accent-2);
     border-radius: var(--br);
     color: var(--text);
     font-family: inherit;
@@ -650,6 +650,101 @@ h1 {
     text-align: center;
 }
 
+.menu-option-btn {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 6px;
+}
+
+.danger-btn {
+    background: linear-gradient(135deg, var(--danger), #c0392b);
+    border-color: var(--danger-bright);
+    color: #fff;
+}
+
+.danger-btn:hover {
+    box-shadow: 0 0 12px rgba(231, 76, 60, 0.4);
+}
+
+.username-display {
+    padding: 7px 9px;
+    background: var(--bg-4);
+    border: var(--bw) solid var(--accent-2);
+    border-radius: var(--br);
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 700;
+    letter-spacing: var(--track-tight);
+}
+
+.streak-display-container {
+    margin: 12px 0;
+    padding: 10px 14px;
+    background: var(--bg-2);
+    border: var(--bw) solid var(--accent-2);
+    border-radius: var(--br);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.streak-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: var(--size-s);
+    letter-spacing: var(--track-tight);
+}
+
+.streak-info.streak-clickable {
+    transition: all var(--t-fast);
+}
+
+.streak-info.streak-clickable:hover {
+    background: var(--bg-3);
+    border-radius: var(--br);
+    padding: 4px 8px;
+    margin: -4px -8px;
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.2);
+}
+
+.streak-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.streak-label {
+    color: var(--accent-3);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.streak-value {
+    color: var(--warm-2);
+    font-weight: 800;
+    font-size: var(--size-m);
+}
+
+.streak-divider {
+    color: var(--accent-2);
+    font-weight: 300;
+}
+
+.streak-top3 {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.streak-top-entry {
+    color: var(--text);
+    font-weight: 600;
+    padding: 2px 6px;
+    background: var(--bg-3);
+    border-radius: var(--br);
+    border: var(--bw) solid var(--accent-2);
+}
+
 .leaderboard-list {
     display: flex;
     flex-direction: column;
@@ -665,7 +760,13 @@ h1 {
     background: var(--bg-3);
     padding: 8px 10px;
     border-radius: var(--br);
-    border: 1px solid var(--accent-2);
+    border: var(--bw) solid var(--accent-2);
+}
+
+.leaderboard-row.current-user {
+    background: var(--bg-4);
+    border-color: var(--accent-bright);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.3);
 }
 
 .lb-rank {
@@ -758,7 +859,7 @@ h1 {
 .tab-btn {
     flex: 1;
     background: var(--bg-3);
-    border: 1px solid var(--accent);
+    border: var(--bw) solid var(--accent);
     color: var(--text);
     padding: 10px 12px;
     border-radius: var(--br);
@@ -801,7 +902,7 @@ h1 {
     width: 100%;
     padding: 10px 12px;
     background: var(--bg-1);
-    border: 1px solid rgba(97, 175, 239, 0.45);
+    border: var(--bw) solid rgba(97, 175, 239, 0.45);
     border-radius: var(--br);
     color: var(--text);
     font-family: inherit;
@@ -814,10 +915,10 @@ h1 {
     margin-top: 6px;
 }
 
-.action-btn, .google-btn {
+.action-btn {
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #1e1e2e;
-    border: 1px solid var(--accent);
+    border: var(--bw) solid var(--accent);
     padding: 10px 14px;
     border-radius: var(--br);
     cursor: pointer;
@@ -828,7 +929,7 @@ h1 {
     width: 100%;
 }
 
-.action-btn:hover, .google-btn:hover {
+.action-btn:hover {
     box-shadow: var(--shadow-accent);
     transform: translateY(-1px);
 }

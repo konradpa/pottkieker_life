@@ -7,7 +7,6 @@ let supabase;
 let currentUser = null;
 let authMode = 'signin'; // signin | signup
 let authInputsBound = false;
-const PENDING_USERNAME_KEY = 'pending_username';
 const USERNAME_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const USERNAME_REGEX = /^[a-zA-Z0-9._-]{3,32}$/;
 let userMenuOutsideListenerBound = false;
@@ -84,13 +83,11 @@ async function initAuth() {
         const { data: { session } } = await supabase.auth.getSession();
         currentUser = session?.user || null;
         updateAuthUI(currentUser);
-        await applyPendingUsername(session?.user);
 
         // Listen for auth changes
         supabase.auth.onAuthStateChange(async (event, session) => {
             currentUser = session?.user || null;
             updateAuthUI(currentUser);
-            await applyPendingUsername(session?.user);
 
             // Reload page on sign in/out to refresh data state if needed
             // or just let the app handle it. For now, we update UI.
@@ -129,15 +126,19 @@ function toggleUserMenu(open) {
 function wireUserMenu(user) {
     const toggle = document.getElementById('user-menu-toggle');
     const logoutBtn = document.getElementById('logout-btn');
+    const changeUsernameBtn = document.getElementById('change-username-btn');
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
     const saveBtn = document.getElementById('username-save-btn');
+    const backBtn = document.getElementById('username-back-btn');
     const usernameInput = document.getElementById('username-input-menu');
+    const usernameDisplay = document.getElementById('username-display');
     const errorEl = document.getElementById('username-error');
-    const leaderboardBtn = document.getElementById('streak-leaderboard-btn');
+    const mainView = document.getElementById('menu-main-view');
+    const usernameView = document.getElementById('menu-username-view');
 
     if (usernameInput) {
         usernameInput.value = getDisplayNameFromUser(user) || '';
     }
-    updateUsernameMetaUI(user);
     if (errorEl) errorEl.textContent = '';
 
     if (toggle) {
@@ -152,12 +153,29 @@ function wireUserMenu(user) {
         logoutBtn.addEventListener('click', signOut);
     }
 
-    if (saveBtn) {
-        saveBtn.addEventListener('click', handleUsernameUpdate);
+    if (changeUsernameBtn) {
+        changeUsernameBtn.addEventListener('click', () => {
+            mainView.style.display = 'none';
+            usernameView.style.display = 'block';
+            usernameInput.focus();
+        });
     }
 
-    if (leaderboardBtn) {
-        leaderboardBtn.addEventListener('click', showLeaderboardModal);
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', handleDeleteAccount);
+    }
+
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            mainView.style.display = 'block';
+            usernameView.style.display = 'none';
+            if (errorEl) errorEl.textContent = '';
+            usernameInput.value = getDisplayNameFromUser(user) || '';
+        });
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', handleUsernameUpdate);
     }
 
     if (!userMenuOutsideListenerBound) {
@@ -185,19 +203,21 @@ function updateAuthUI(user) {
                 <div class="user-profile">
                     <button id="user-menu-toggle" class="user-pill">[ USER: ${escapeAttr(display).toUpperCase()} ]</button>
                     <div id="user-menu" class="user-menu">
-                        <div class="user-menu-section" id="streak-section">
-                            <label class="user-menu-label">[ STREAK ]</label>
-                            <div id="streak-info" class="user-menu-meta">Loading...</div>
-                            <button id="streak-leaderboard-btn" class="auth-btn auth-btn-compact">View Leaderboard</button>
+                        <div id="menu-main-view">
+                            <button id="change-username-btn" class="auth-btn auth-btn-compact menu-option-btn">Change Username</button>
+                            <button id="delete-account-btn" class="auth-btn auth-btn-compact menu-option-btn danger-btn">Delete Account</button>
+                            <button id="logout-btn" class="auth-btn auth-btn-compact logout-btn">[ LOGOUT ]</button>
                         </div>
-                        <div class="user-menu-section">
-                            <label class="user-menu-label">[ CHANGE USERNAME ]</label>
-                            <input type="text" id="username-input-menu" maxlength="32" value="${escapeAttr(display)}" placeholder="new username">
-                            <div id="username-meta" class="user-menu-meta"></div>
-                            <div id="username-error" class="user-menu-error"></div>
-                            <button id="username-save-btn" class="auth-btn auth-btn-compact">Update Username</button>
+                        <div id="menu-username-view" style="display:none;">
+                            <div class="user-menu-section">
+                                <label class="user-menu-label">[ CHANGE USERNAME ]</label>
+                                <div id="username-display" class="username-display">${escapeHtml(display)}</div>
+                                <input type="text" id="username-input-menu" maxlength="32" value="${escapeAttr(display)}" placeholder="new username">
+                                <div id="username-error" class="user-menu-error"></div>
+                                <button id="username-save-btn" class="auth-btn auth-btn-compact">Save</button>
+                                <button id="username-back-btn" class="auth-btn auth-btn-compact">Back</button>
+                            </div>
                         </div>
-                        <button id="logout-btn" class="auth-btn auth-btn-compact logout-btn">[ LOGOUT ]</button>
                     </div>
                 </div>
             `;
@@ -213,6 +233,9 @@ function updateAuthUI(user) {
         }
     }
     document.dispatchEvent(new CustomEvent('auth:changed', { detail: { user } }));
+
+    // Update streak display in header
+    updateStreakDisplay();
 }
 
 // Login Modal
@@ -230,11 +253,6 @@ function showLoginModal() {
                     <button class="close-btn">×</button>
                 </div>
                 <div class="modal-body">
-                    <div class="auth-tabs">
-                        <button class="tab-btn active" data-tab="email">[ EMAIL ]</button>
-                        <button class="tab-btn" data-tab="google">[ GOOGLE ]</button>
-                    </div>
-                    
                     <div id="email-tab" class="tab-content active">
                         <form id="email-login-form">
                             <div class="form-group">
@@ -246,7 +264,7 @@ function showLoginModal() {
                             </div>
                             <div class="form-group">
                                 <label>[ EMAIL ]</label>
-                                <input type="email" id="email-input" required placeholder="user@example.com">
+                                <input type="email" id="email-input" required placeholder="user@studium.uni-hamburg.de">
                             </div>
                             <div class="form-group">
                                 <label>[ PASSWORD ]</label>
@@ -259,18 +277,6 @@ function showLoginModal() {
                             <div id="auth-error" class="error-msg"></div>
                         </form>
                     </div>
-                    
-                    <div id="google-tab" class="tab-content">
-                        <p class="info-text">Sign in with your Google account</p>
-                        <div class="form-group">
-                            <label>[ USERNAME ]</label>
-                            <input type="text" id="google-username-input" maxlength="32" placeholder="choose a username">
-                        </div>
-                        <p class="info-text">We’ll set this as your display name after Google login.</p>
-                        <button id="google-login-btn" class="google-btn">
-                            [ CONTINUE WITH GOOGLE ]
-                        </button>
-                    </div>
                 </div>
             </div>
         `;
@@ -282,23 +288,9 @@ function showLoginModal() {
             if (e.target === modal) closeLoginModal();
         });
 
-        // Tabs
-        const tabs = modal.querySelectorAll('.tab-btn');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-
-                const tabId = tab.dataset.tab;
-                modal.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                document.getElementById(`${tabId}-tab`).classList.add('active');
-            });
-        });
-
         // Forms
         document.getElementById('email-login-form').addEventListener('submit', handleAuthSubmit);
         document.getElementById('signup-btn').addEventListener('click', toggleAuthMode);
-        document.getElementById('google-login-btn').addEventListener('click', handleGoogleLogin);
         setupAuthInputListeners();
     }
 
@@ -319,7 +311,6 @@ function setupAuthInputListeners() {
     const emailInput = document.getElementById('email-input');
     const passwordInput = document.getElementById('password-input');
     const usernameInput = document.getElementById('username-input');
-    const googleUsernameInput = document.getElementById('google-username-input');
     const primaryBtn = document.getElementById('primary-auth-btn');
 
     const updateState = () => {
@@ -339,15 +330,7 @@ function setupAuthInputListeners() {
         emailInput?.addEventListener('input', updateState);
         passwordInput?.addEventListener('input', updateState);
         usernameInput?.addEventListener('input', updateState);
-        googleUsernameInput?.addEventListener('input', () => {
-            const val = googleUsernameInput.value.trim();
-            document.getElementById('google-login-btn').disabled = val.length === 0;
-        });
         authInputsBound = true;
-    }
-    const googleBtn = document.getElementById('google-login-btn');
-    if (googleBtn && googleUsernameInput) {
-        googleBtn.disabled = (googleUsernameInput.value.trim().length === 0);
     }
     updateState();
 }
@@ -442,6 +425,13 @@ async function handleEmailSignup() {
         return;
     }
 
+    // Validate email domain (only allow @studium.uni-hamburg.de or @uni-hamburg.de)
+    const emailLower = email.toLowerCase();
+    if (!emailLower.endsWith('@studium.uni-hamburg.de') && !emailLower.endsWith('@uni-hamburg.de')) {
+        errorEl.textContent = '[ ERROR: Only @studium.uni-hamburg.de or @uni-hamburg.de email addresses are allowed ]';
+        return;
+    }
+
     if (password.length < 6) {
         errorEl.textContent = '[ ERROR: Password must be at least 6 characters ]';
         return;
@@ -474,33 +464,6 @@ async function handleEmailSignup() {
     }
 }
 
-async function handleGoogleLogin() {
-    const errorEl = document.getElementById('auth-error');
-    if (!supabase) {
-        if (errorEl) errorEl.textContent = '[ ERROR: Auth not configured ]';
-        return;
-    }
-    const googleUsernameInput = document.getElementById('google-username-input');
-    const desiredUsername = googleUsernameInput?.value.trim() || '';
-
-    if (!desiredUsername) {
-        if (errorEl) errorEl.textContent = '[ ERROR: Username required for Google login ]';
-        return;
-    }
-
-    localStorage.setItem(PENDING_USERNAME_KEY, desiredUsername);
-
-    const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.origin
-        }
-    });
-
-    if (error) {
-        alert(`Login failed: ${error.message}`);
-    }
-}
 
 async function signOut() {
     await supabase.auth.signOut();
@@ -509,10 +472,10 @@ async function signOut() {
 async function handleUsernameUpdate() {
     const errorEl = document.getElementById('username-error');
     const input = document.getElementById('username-input-menu');
-    const metaEl = document.getElementById('username-meta');
+    const mainView = document.getElementById('menu-main-view');
+    const usernameView = document.getElementById('menu-username-view');
 
     if (errorEl) errorEl.textContent = '';
-    if (metaEl) metaEl.textContent = '';
 
     if (!supabase || !currentUser) {
         if (errorEl) errorEl.textContent = '[ ERROR: Auth not ready ]';
@@ -539,16 +502,16 @@ async function handleUsernameUpdate() {
 
     const remaining = getUsernameCooldownMs(currentUser);
     if (remaining > 0) {
-        if (errorEl) errorEl.textContent = `[ ERROR: Next change in ${formatDuration(remaining)} ]`;
+        if (errorEl) errorEl.textContent = '[ ERROR: You can only change username once per 24h ]';
         return;
     }
 
     if (newUsername.toLowerCase() === currentDisplay.toLowerCase()) {
-        if (metaEl) metaEl.textContent = '[ Username unchanged ]';
+        if (errorEl) errorEl.textContent = '[ Username unchanged ]';
         return;
     }
 
-    if (metaEl) metaEl.textContent = 'Updating...';
+    if (errorEl) errorEl.textContent = 'Updating...';
 
     const nowIso = new Date().toISOString();
 
@@ -561,43 +524,192 @@ async function handleUsernameUpdate() {
 
     if (error) {
         if (errorEl) errorEl.textContent = `[ ERROR: ${error.message} ]`;
-        if (metaEl) metaEl.textContent = '';
         return;
     }
 
     currentUser = data?.user || currentUser;
-    updateAuthUI(currentUser);
+
+    // Return to main menu view
+    if (mainView) mainView.style.display = 'block';
+    if (usernameView) usernameView.style.display = 'none';
+    if (errorEl) errorEl.textContent = '';
+
     toggleUserMenu(false);
-    const meta = document.getElementById('username-meta');
-    if (meta) meta.textContent = '[ Username updated ]';
+    updateAuthUI(currentUser);
 }
 
-function updateUsernameMetaUI(user) {
-    const metaEl = document.getElementById('username-meta');
-    if (!metaEl) return;
-    const remaining = getUsernameCooldownMs(user);
-    if (remaining > 0) {
-        metaEl.textContent = `[ Next change in ${formatDuration(remaining)} ]`;
-    } else {
-        metaEl.textContent = '[ You can update once every 24h ]';
+async function handleDeleteAccount() {
+    const confirmed = confirm(
+        'Are you sure you want to delete your account?\n\n' +
+        'This will permanently delete:\n' +
+        '- Your account and profile\n' +
+        '- All your uploaded photos\n' +
+        '- All your comments\n' +
+        '- Your streak data\n\n' +
+        'This action CANNOT be undone!'
+    );
+
+    if (!confirmed) return;
+
+    const doubleConfirm = prompt(
+        'Type "DELETE" (in capital letters) to confirm account deletion:'
+    );
+
+    if (doubleConfirm !== 'DELETE') {
+        alert('Account deletion cancelled.');
+        return;
+    }
+
+    if (!supabase || !currentUser) {
+        alert('Error: Authentication not ready');
+        return;
+    }
+
+    try {
+        // Call backend to delete user data
+        const token = await getAuthToken();
+        const response = await fetch('/api/user/delete', {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete user data');
+        }
+
+        // Delete Supabase auth account
+        const { error } = await supabase.auth.admin.deleteUser(currentUser.id);
+
+        if (error) {
+            // If admin delete fails, try regular sign out
+            console.error('Admin delete failed, signing out instead:', error);
+            await supabase.auth.signOut();
+            alert('Your data has been deleted. Please contact support to fully remove your account.');
+        } else {
+            alert('Your account has been successfully deleted.');
+        }
+
+        // Reload page
+        window.location.reload();
+    } catch (err) {
+        console.error('Delete account error:', err);
+        alert('Failed to delete account. Please try again or contact support.');
     }
 }
 
 async function fetchAndRenderStreak() {
-    const infoEl = document.getElementById('streak-info');
-    if (!infoEl || !currentUser) return;
-    infoEl.textContent = 'Loading...';
+    if (!currentUser) return;
     try {
         const res = await authFetch('/api/streaks/me');
         if (!res.ok) throw new Error('Failed');
         streakInfo = await res.json();
-        infoEl.textContent = `[ ${streakInfo.current_streak || 0}🔥 | Best ${streakInfo.longest_streak || 0} ]`;
+        updateStreakDisplay();
     } catch (e) {
-        infoEl.textContent = '[ Streak unavailable ]';
+        console.error('Failed to fetch streak:', e);
     }
 }
 
-async function showLeaderboardModal() {
+async function updateStreakDisplay() {
+    // Get or create streak container in header
+    let streakContainer = document.getElementById('streak-display-container');
+
+    if (!streakContainer) {
+        const header = document.querySelector('header');
+        if (!header) return;
+
+        streakContainer = document.createElement('div');
+        streakContainer.id = 'streak-display-container';
+        streakContainer.className = 'streak-display-container';
+
+        // Insert before auth-container
+        const authContainer = document.getElementById('auth-container');
+        if (authContainer) {
+            header.insertBefore(streakContainer, authContainer);
+        } else {
+            header.appendChild(streakContainer);
+        }
+    }
+
+    streakContainer.style.display = 'block';
+
+    try {
+        // Fetch leaderboard (public endpoint, works without auth)
+        const lbRes = await fetch('/api/streaks/leaderboard');
+
+        if (!lbRes.ok) {
+            streakContainer.innerHTML = '<div class="streak-info">[ Streaks unavailable ]</div>';
+            return;
+        }
+
+        const lbData = await lbRes.json();
+        const topThree = (lbData.leaderboard || []).slice(0, 3);
+
+        let html = '<div class="streak-info streak-clickable">';
+
+        // Always show "Photos in a row:" section
+        if (currentUser) {
+            // Logged in: show actual streak
+            const meRes = await authFetch('/api/streaks/me');
+            if (meRes.ok) {
+                const myStreak = await meRes.json();
+                html += `<div class="streak-item streak-own">
+                    <span class="streak-label">Photos in a row:</span>
+                    <span class="streak-value">${myStreak.current_streak || 0}🔥</span>
+                </div>`;
+            }
+        } else {
+            // Guest: show 0 to demonstrate the feature
+            html += `<div class="streak-item streak-own">
+                <span class="streak-label">Photos in a row:</span>
+                <span class="streak-value">0🔥</span>
+            </div>`;
+        }
+
+        // Show top 3 (always visible)
+        if (topThree.length > 0) {
+            html += '<div class="streak-divider">|</div>';
+            html += '<div class="streak-item streak-top3">';
+            html += '<span class="streak-label">Top 3:</span>';
+            topThree.forEach((row, idx) => {
+                const name = row.display_name || 'User';
+                const medal = ['🥇', '🥈', '🥉'][idx];
+                html += `<span class="streak-top-entry">${medal} ${escapeHtml(name)}: ${row.current_streak}🔥</span>`;
+            });
+            html += '</div>';
+        } else {
+            // No streaks exist yet
+            html += '<div class="streak-divider">|</div>';
+            html += '<div class="streak-item"><span class="streak-label">No streaks yet - be the first!</span></div>';
+        }
+
+        html += '</div>';
+        streakContainer.innerHTML = html;
+
+        // Make streak bar clickable
+        const streakInfoEl = streakContainer.querySelector('.streak-info');
+        if (streakInfoEl) {
+            streakInfoEl.style.cursor = 'pointer';
+            streakInfoEl.onclick = () => {
+                if (currentUser) {
+                    // Logged in: show leaderboard
+                    showLeaderboardModal(10);
+                } else {
+                    // Not logged in: show login modal
+                    showLoginModal();
+                }
+            };
+        }
+
+    } catch (e) {
+        console.error('Failed to update streak display:', e);
+        streakContainer.innerHTML = '<div class="streak-info">[ Streaks unavailable ]</div>';
+    }
+}
+
+async function showLeaderboardModal(limit = 10) {
     let modal = document.getElementById('streak-leaderboard-modal');
     if (!modal) {
         modal = document.createElement('div');
@@ -615,9 +727,15 @@ async function showLeaderboardModal() {
             </div>
         `;
         document.body.appendChild(modal);
-        modal.querySelector('.close-btn').addEventListener('click', () => modal.style.display = 'none');
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        });
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.style.display = 'none';
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
         });
     }
 
@@ -633,11 +751,14 @@ async function showLeaderboardModal() {
         if (!rows.length) {
             listEl.textContent = 'No streaks yet.';
         } else {
-            listEl.innerHTML = rows.map((row, idx) => {
+            const limitedRows = rows.slice(0, limit);
+            listEl.innerHTML = limitedRows.map((row, idx) => {
                 const name = row.display_name || 'User';
-                return `<div class="leaderboard-row">
+                const isCurrentUser = currentUser && row.user_id === currentUser.id;
+                const rowClass = isCurrentUser ? 'leaderboard-row current-user' : 'leaderboard-row';
+                return `<div class="${rowClass}">
                     <span class="lb-rank">#${idx + 1}</span>
-                    <span class="lb-name">${escapeHtml(name)}</span>
+                    <span class="lb-name">${escapeHtml(name)}${isCurrentUser ? ' (You)' : ''}</span>
                     <span class="lb-streak">${row.current_streak}🔥 (Best ${row.longest_streak})</span>
                 </div>`;
             }).join('');
@@ -647,40 +768,6 @@ async function showLeaderboardModal() {
     }
 }
 
-// Pending username handling for OAuth (Google)
-function getPendingUsername() {
-    return localStorage.getItem(PENDING_USERNAME_KEY);
-}
-
-function clearPendingUsername() {
-    localStorage.removeItem(PENDING_USERNAME_KEY);
-}
-
-async function applyPendingUsername(user) {
-    if (!supabase || !user) return;
-    const pending = getPendingUsername();
-    if (!pending) return;
-
-    if (user.user_metadata && user.user_metadata.username) {
-        clearPendingUsername();
-        return;
-    }
-
-    try {
-        const { error, data } = await supabase.auth.updateUser({
-            data: { username: pending, last_username_change: new Date().toISOString() }
-        });
-        if (error) {
-            console.warn('Failed to set username after OAuth:', error.message);
-        } else {
-            clearPendingUsername();
-            currentUser = data?.user || { ...user, user_metadata: { ...(user.user_metadata || {}), username: pending, last_username_change: new Date().toISOString() } };
-            updateAuthUI(currentUser);
-        }
-    } catch (err) {
-        console.error('Error applying pending username:', err);
-    }
-}
 
 // Helper to get token for API calls
 async function getAuthToken() {
