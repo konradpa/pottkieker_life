@@ -302,16 +302,21 @@
             // Check if user is admin by calling backend
             try {
                 const token = await window.AuthModule.getAuthToken();
+                console.log('[Admin Check] User email:', user.email);
+                console.log('[Admin Check] Has token:', !!token);
+
                 const response = await fetch('/api/admin/check', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 const data = await response.json();
+                console.log('[Admin Check] Response:', data);
 
                 if (data.isAdmin) {
                     isAdmin = true;
                     showAdminPanel();
                 } else {
+                    console.warn('[Admin Check] Access denied for email:', user.email);
                     document.getElementById('loadingScreen').style.display = 'none';
                     document.getElementById('accessDenied').style.display = 'block';
                 }

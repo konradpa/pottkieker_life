@@ -60,6 +60,14 @@ async function authMiddleware(req, res, next) {
         };
         req.isAdmin = user.user_metadata?.role === 'admin' || isAdminEmail(user.email);
 
+        // Debug logging for admin check
+        if (req.path?.includes('/admin')) {
+            console.log('[Auth] Admin check for:', user.email);
+            console.log('[Auth] Admin emails configured:', adminEmails);
+            console.log('[Auth] Is admin email match:', isAdminEmail(user.email));
+            console.log('[Auth] Final isAdmin:', req.isAdmin);
+        }
+
         next();
     } catch (err) {
         console.error('Auth middleware error:', err);
