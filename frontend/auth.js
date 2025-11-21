@@ -8,6 +8,9 @@ let currentUser = null;
 let authMode = 'signin'; // signin | signup
 let authInputsBound = false;
 const PENDING_USERNAME_KEY = 'pending_username';
+const USERNAME_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const USERNAME_REGEX = /^[a-zA-Z0-9._-]{3,32}$/;
+let userMenuOutsideListenerBound = false;
 
 function getDisplayNameFromUser(user) {
     if (!user) return null;
@@ -16,6 +19,32 @@ function getDisplayNameFromUser(user) {
     const email = user.email;
     if (email) return email.split('@')[0];
     return null;
+}
+
+function getLastUsernameChange(user) {
+    const ts = user?.user_metadata?.last_username_change;
+    if (!ts) return null;
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function getUsernameCooldownMs(user) {
+    const last = getLastUsernameChange(user);
+    if (!last) return 0;
+    const diff = Date.now() - last.getTime();
+    return Math.max(USERNAME_COOLDOWN_MS - diff, 0);
+}
+
+function formatDuration(ms) {
+    const totalSeconds = Math.ceil(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+}
+
+function escapeAttr(str) {
+    return (str || '').replace(/"/g, '&quot;');
 }
 
 // Initialize Auth
@@ -73,6 +102,56 @@ function setupLoginButtonFallback() {
     });
 }
 
+function toggleUserMenu(open) {
+    const menu = document.getElementById('user-menu');
+    if (!menu) return;
+    if (open) {
+        menu.classList.add('open');
+    } else {
+        menu.classList.remove('open');
+    }
+}
+
+function wireUserMenu(user) {
+    const toggle = document.getElementById('user-menu-toggle');
+    const logoutBtn = document.getElementById('logout-btn');
+    const saveBtn = document.getElementById('username-save-btn');
+    const usernameInput = document.getElementById('username-input-menu');
+    const errorEl = document.getElementById('username-error');
+
+    if (usernameInput) {
+        usernameInput.value = getDisplayNameFromUser(user) || '';
+    }
+    updateUsernameMetaUI(user);
+    if (errorEl) errorEl.textContent = '';
+
+    if (toggle) {
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = document.getElementById('user-menu')?.classList.contains('open');
+            toggleUserMenu(!isOpen);
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', signOut);
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', handleUsernameUpdate);
+    }
+
+    if (!userMenuOutsideListenerBound) {
+        document.addEventListener('click', (e) => {
+            const profile = document.querySelector('.user-profile');
+            if (profile && !profile.contains(e.target)) {
+                toggleUserMenu(false);
+            }
+        });
+        userMenuOutsideListenerBound = true;
+    }
+}
+
 // UI Updates
 function updateAuthUI(user) {
     const authContainer = document.getElementById('auth-container');
@@ -83,17 +162,26 @@ function updateAuthUI(user) {
 
             authContainer.innerHTML = `
                 <div class="user-profile">
-                    <span class="user-label">[ USER: ${display.toUpperCase()} ]</span>
-                    <button id="logout-btn" class="auth-btn">[ LOGOUT ]</button>
+                    <button id="user-menu-toggle" class="user-pill">[ USER: ${escapeAttr(display).toUpperCase()} ]</button>
+                    <div id="user-menu" class="user-menu">
+                        <div class="user-menu-section">
+                            <label class="user-menu-label">[ CHANGE USERNAME ]</label>
+                            <input type="text" id="username-input-menu" maxlength="32" value="${escapeAttr(display)}" placeholder="new username">
+                            <div id="username-meta" class="user-menu-meta"></div>
+                            <div id="username-error" class="user-menu-error"></div>
+                            <button id="username-save-btn" class="auth-btn auth-btn-compact">Update Username</button>
+                        </div>
+                        <button id="logout-btn" class="auth-btn auth-btn-compact logout-btn">[ LOGOUT ]</button>
+                    </div>
                 </div>
             `;
 
-            document.getElementById('logout-btn').addEventListener('click', signOut);
+            wireUserMenu(user);
         } else {
-            // User is guest
-            authContainer.innerHTML = `
-                <button id="login-btn" class="auth-btn">[ LOGIN ]</button>
-            `;
+        // User is guest
+        authContainer.innerHTML = `
+            <button id="login-btn" class="auth-btn">[ LOGIN ]</button>
+        `;
 
             document.getElementById('login-btn').addEventListener('click', showLoginModal);
         }
@@ -347,7 +435,7 @@ async function handleEmailSignup() {
         password,
         options: {
             emailRedirectTo: window.location.origin,
-            data: { username }
+            data: { username, last_username_change: new Date().toISOString() }
         }
     });
 
@@ -392,6 +480,83 @@ async function signOut() {
     await supabase.auth.signOut();
 }
 
+async function handleUsernameUpdate() {
+    const errorEl = document.getElementById('username-error');
+    const input = document.getElementById('username-input-menu');
+    const metaEl = document.getElementById('username-meta');
+
+    if (errorEl) errorEl.textContent = '';
+    if (metaEl) metaEl.textContent = '';
+
+    if (!supabase || !currentUser) {
+        if (errorEl) errorEl.textContent = '[ ERROR: Auth not ready ]';
+        return;
+    }
+
+    if (!input) {
+        if (errorEl) errorEl.textContent = '[ ERROR: Username input missing ]';
+        return;
+    }
+
+    const newUsername = input.value.trim();
+    const currentDisplay = getDisplayNameFromUser(currentUser) || '';
+
+    if (!newUsername) {
+        if (errorEl) errorEl.textContent = '[ ERROR: Username required ]';
+        return;
+    }
+
+    if (!USERNAME_REGEX.test(newUsername)) {
+        if (errorEl) errorEl.textContent = '[ ERROR: 3-32 chars using letters, numbers, . _ - ]';
+        return;
+    }
+
+    const remaining = getUsernameCooldownMs(currentUser);
+    if (remaining > 0) {
+        if (errorEl) errorEl.textContent = `[ ERROR: Next change in ${formatDuration(remaining)} ]`;
+        return;
+    }
+
+    if (newUsername.toLowerCase() === currentDisplay.toLowerCase()) {
+        if (metaEl) metaEl.textContent = '[ Username unchanged ]';
+        return;
+    }
+
+    if (metaEl) metaEl.textContent = 'Updating...';
+
+    const nowIso = new Date().toISOString();
+
+    const { data, error } = await supabase.auth.updateUser({
+        data: {
+            username: newUsername,
+            last_username_change: nowIso
+        }
+    });
+
+    if (error) {
+        if (errorEl) errorEl.textContent = `[ ERROR: ${error.message} ]`;
+        if (metaEl) metaEl.textContent = '';
+        return;
+    }
+
+    currentUser = data?.user || currentUser;
+    updateAuthUI(currentUser);
+    toggleUserMenu(false);
+    const meta = document.getElementById('username-meta');
+    if (meta) meta.textContent = '[ Username updated ]';
+}
+
+function updateUsernameMetaUI(user) {
+    const metaEl = document.getElementById('username-meta');
+    if (!metaEl) return;
+    const remaining = getUsernameCooldownMs(user);
+    if (remaining > 0) {
+        metaEl.textContent = `[ Next change in ${formatDuration(remaining)} ]`;
+    } else {
+        metaEl.textContent = '[ You can update once every 24h ]';
+    }
+}
+
 // Pending username handling for OAuth (Google)
 function getPendingUsername() {
     return localStorage.getItem(PENDING_USERNAME_KEY);
@@ -412,14 +577,14 @@ async function applyPendingUsername(user) {
     }
 
     try {
-        const { error } = await supabase.auth.updateUser({
-            data: { username: pending }
+        const { error, data } = await supabase.auth.updateUser({
+            data: { username: pending, last_username_change: new Date().toISOString() }
         });
         if (error) {
             console.warn('Failed to set username after OAuth:', error.message);
         } else {
             clearPendingUsername();
-            currentUser = { ...user, user_metadata: { ...(user.user_metadata || {}), username: pending } };
+            currentUser = data?.user || { ...user, user_metadata: { ...(user.user_metadata || {}), username: pending, last_username_change: new Date().toISOString() } };
             updateAuthUI(currentUser);
         }
     } catch (err) {

@@ -525,20 +525,21 @@ h1 {
 .user-profile {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: var(--bg-2);
-    padding: 8px 16px;
+    padding: 6px 10px;
     border-radius: var(--br);
     border: 1px solid var(--accent-2);
     box-shadow: var(--shadow-accent);
+    position: relative;
 }
 
 .user-label {
     color: var(--accent-bright);
-    font-weight: 700;
-    font-size: var(--size-m);
-    letter-spacing: var(--track-wide);
-    text-shadow: 0 0 8px rgba(8, 192, 208, 0.3);
+    font-weight: 600;
+    font-size: var(--size-s);
+    letter-spacing: var(--track-tight);
+    text-shadow: 0 0 6px rgba(8, 192, 208, 0.3);
 }
 
 .auth-btn {
@@ -564,6 +565,89 @@ h1 {
     border-color: var(--accent-2);
     box-shadow: var(--shadow-accent);
     transform: translateY(-1px);
+}
+
+.auth-btn.auth-btn-compact {
+    padding: 6px 10px;
+    font-size: var(--size-xs);
+}
+
+.user-pill {
+    background: var(--bg-3);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: var(--br);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--size-s);
+    font-weight: 700;
+    letter-spacing: var(--track-tight);
+    text-transform: uppercase;
+    transition: all var(--t-fast);
+}
+
+.user-pill:hover {
+    color: var(--accent-bright);
+    box-shadow: var(--shadow-accent);
+}
+
+.user-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: var(--bg-2);
+    border: 1px solid var(--accent);
+    border-radius: var(--br);
+    padding: 12px;
+    margin-top: 6px;
+    min-width: 220px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+    display: none;
+    z-index: 20;
+}
+
+.user-menu.open {
+    display: block;
+}
+
+.user-menu-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.user-menu-label {
+    font-size: var(--size-xs);
+    letter-spacing: var(--track-tight);
+    color: var(--accent-3);
+}
+
+.user-menu input {
+    padding: 7px 9px;
+    background: var(--bg-4);
+    border: 1px solid var(--accent-2);
+    border-radius: var(--br);
+    color: var(--text);
+    font-family: inherit;
+}
+
+.user-menu-meta {
+    font-size: var(--size-xs);
+    color: var(--text-muted);
+    letter-spacing: var(--track-tight);
+}
+
+.user-menu-error {
+    font-size: var(--size-xs);
+    color: var(--danger-bright);
+    letter-spacing: var(--track-tight);
+}
+
+.logout-btn {
+    width: 100%;
+    text-align: center;
 }
 
 .modal-open {

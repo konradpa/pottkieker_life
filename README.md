@@ -18,7 +18,7 @@ Source code for [pottkieker.life](https://pottkieker.life)
 - **Authentication**:
   - Supabase Auth (email/password + Google OAuth)
   - Username support surfaced in UI (email, Google)
-  - Comments use the authenticated username (login required to comment)
+  - Comments use the authenticated username (login required to comment, username change limited to once per 24h)
 - **Task Scheduling**: node-cron for automated meal data fetching and cleanup
 - **XML Parsing**: xml2js for processing OpenMensa XML feeds
 
