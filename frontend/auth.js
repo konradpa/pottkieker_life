@@ -450,7 +450,7 @@ async function handleEmailSignup() {
         email,
         password,
         options: {
-            emailRedirectTo: pottkieker.life,
+            emailRedirectTo: 'https://pottkieker.life',
             data: { username, last_username_change: new Date().toISOString() }
         }
     });
