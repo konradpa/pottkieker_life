@@ -18,15 +18,6 @@ Source code for [pottkieker.life](https://pottkieker.life)
 - **Authentication**:
   - Supabase Auth (email/password + Google OAuth)
   - Username support surfaced in UI (email, Google)
-  - Comments use the authenticated username (login required to comment, username change limited to once per 24h)
-  - Admin whitelist via `ADMIN_EMAILS` env (comma-separated). Admins can access `/api/admin` without the legacy password and can delete any photo/comment; admin comments show a red `(Admin)` badge.
-  - Guests can still post; guest identities use cookies/IP for ownership, and delete remains possible from the same browser.
-- **Streaks**:
-  - Photo upload streaks tracked per user (weekends don’t break streaks) via `user_streaks` table.
-  - Endpoints: `GET /api/streaks/me`, `GET /api/streaks/leaderboard`.
-  - Streak info and leaderboard surfaced in the user menu; uploads return streak updates.
-- **Task Scheduling**: node-cron for automated meal data fetching and cleanup
-- **XML Parsing**: xml2js for processing OpenMensa XML feeds
 
 ### Frontend
 - **Architecture**: Vanilla JavaScript (no frameworks)
