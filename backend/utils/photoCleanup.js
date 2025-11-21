@@ -54,7 +54,7 @@ function cleanupOldPhotos() {
       db.run(
         'DELETE FROM food_photos WHERE upload_date < ?',
         [today],
-        function(err) {
+        function (err) {
           if (err) {
             console.error('[Photo Cleanup] Error deleting old photos from database:', err);
             return;
@@ -68,6 +68,30 @@ function cleanupOldPhotos() {
 }
 
 /**
+ * Delete old comments from the database
+ */
+function cleanupOldComments() {
+  const today = getTodayDate();
+  console.log(`[Comment Cleanup] Starting cleanup for comments before ${today}`);
+
+  db.run(
+    'DELETE FROM comments WHERE timestamp < ?',
+    [today],
+    function (err) {
+      if (err) {
+        console.error('[Comment Cleanup] Error deleting old comments:', err);
+        return;
+      }
+      if (this.changes > 0) {
+        console.log(`[Comment Cleanup] Successfully deleted ${this.changes} old comments`);
+      } else {
+        console.log('[Comment Cleanup] No old comments to delete');
+      }
+    }
+  );
+}
+
+/**
  * Initialize the cleanup scheduler
  * Runs every day at midnight (Europe/Berlin timezone for Hamburg)
  */
@@ -75,17 +99,19 @@ function initPhotoCleanupScheduler() {
   // Run at midnight every day (0 0 * * *)
   // Using Europe/Berlin timezone for Hamburg
   cron.schedule('0 0 * * *', () => {
-    console.log('[Photo Cleanup] Running scheduled cleanup at midnight');
+    console.log('[Cleanup] Running scheduled cleanup at midnight');
     cleanupOldPhotos();
+    cleanupOldComments();
   }, {
     scheduled: true,
     timezone: 'Europe/Berlin'
   });
 
-  console.log('[Photo Cleanup] Scheduler initialized - will run daily at midnight (Europe/Berlin)');
+  console.log('[Cleanup] Scheduler initialized - will run daily at midnight (Europe/Berlin)');
 }
 
 module.exports = {
   initPhotoCleanupScheduler,
-  cleanupOldPhotos // Export for manual testing if needed
+  cleanupOldPhotos,
+  cleanupOldComments
 };
