@@ -66,6 +66,92 @@ const upload = multer({
 
 const uploadSingle = upload.single('photo');
 
+function getBerlinToday() {
+  // Normalize to Europe/Berlin date
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+  now.setHours(0, 0, 0, 0);
+  return now;
+}
+
+function formatDate(dateObj) {
+  return dateObj.toISOString().split('T')[0];
+}
+
+function isWeekend(dateObj) {
+  const day = dateObj.getDay();
+  return day === 0 || day === 6;
+}
+
+function previousValidPostDate(dateObj) {
+  // Returns the most recent date (before dateObj) that counts toward streak, skipping weekends.
+  const d = new Date(dateObj);
+  do {
+    d.setDate(d.getDate() - 1);
+  } while (isWeekend(d));
+  return formatDate(d);
+}
+
+function computeIsOwner(row, req, requesterIpHash) {
+  return !!(
+    (row.owner_token_hash && req.ownerTokenHash && row.owner_token_hash === req.ownerTokenHash) ||
+    (row.user_id && req.user?.id && row.user_id === req.user.id) ||
+    (!row.owner_token_hash && row.ip_address && requesterIpHash && row.ip_address === requesterIpHash)
+  );
+}
+
+async function updateUserStreak(db, user_id) {
+  if (!user_id) return null;
+  return new Promise((resolve, reject) => {
+    const today = getBerlinToday();
+    const todayStr = formatDate(today);
+    const isTodayWeekend = isWeekend(today);
+
+    db.get('SELECT current_streak, longest_streak, last_post_date FROM user_streaks WHERE user_id = ?', [user_id], (err, row) => {
+      if (err) return reject(err);
+
+      const last = row?.last_post_date;
+      let current_streak = row?.current_streak || 0;
+      let longest_streak = row?.longest_streak || 0;
+
+      if (last === todayStr) {
+        // already counted today
+      } else {
+        const prevValid = previousValidPostDate(today);
+
+        if (last && last === prevValid) {
+          current_streak += 1;
+        } else if (!last && !isTodayWeekend) {
+          current_streak = 1;
+        } else if (!last && isTodayWeekend) {
+          // weekend first post, start streak
+          current_streak = 1;
+        } else {
+          current_streak = 1;
+        }
+      }
+
+      if (current_streak > longest_streak) {
+        longest_streak = current_streak;
+      }
+
+      const upsertSql = `
+        INSERT INTO user_streaks (user_id, current_streak, longest_streak, last_post_date, updated_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET
+          current_streak = excluded.current_streak,
+          longest_streak = excluded.longest_streak,
+          last_post_date = excluded.last_post_date,
+          updated_at = CURRENT_TIMESTAMP
+      `;
+
+      db.run(upsertSql, [user_id, current_streak, longest_streak, todayStr], (upsertErr) => {
+        if (upsertErr) return reject(upsertErr);
+        resolve({ current_streak, longest_streak, last_post_date: todayStr });
+      });
+    });
+  });
+}
+
 // Helper functions
 function relativePhotoPath(file) {
   if (!file) return null;
@@ -107,14 +193,6 @@ function getAuthorFromRequest(req) {
   const email = user?.email;
   if (email) return email.split('@')[0];
   return null;
-}
-
-function computeIsOwner(row, req, requesterIpHash) {
-  return !!(
-    (row.owner_token_hash && req.ownerTokenHash && row.owner_token_hash === req.ownerTokenHash) ||
-    (row.user_id && req.user?.id && row.user_id === req.user.id) ||
-    (!row.owner_token_hash && row.ip_address && requesterIpHash && row.ip_address === requesterIpHash)
-  );
 }
 
 /**
@@ -332,28 +410,54 @@ router.post('/', (req, res, next) => {
               return res.status(500).json({ error: 'Failed to upload photo' });
             }
 
-            res.status(201).json({
-              success: true,
-              photo: {
-                id: this.lastID,
-                meal_id: meal_id,
-                meal_name: meal.name,
-                mensa_location: meal.mensa_location,
-                photo_url: photoPathToUrl(photoPath),
-                author_name: sanitizedName,
-      caption: sanitizedCaption,
-      vote_count: 0,
-      comment_count: 0,
-      created_at: new Date().toISOString(),
-      is_owner: computeIsOwner({
-        owner_token_hash,
-        user_id,
-        ip_address
-      }, req, requesterIpHash),
-      is_admin: !!is_admin
-    }
-  });
-}
+            updateUserStreak(db, user_id).then((streak) => {
+              res.status(201).json({
+                success: true,
+                photo: {
+                  id: this.lastID,
+                  meal_id: meal_id,
+                  meal_name: meal.name,
+                  mensa_location: meal.mensa_location,
+                  photo_url: photoPathToUrl(photoPath),
+                  author_name: sanitizedName,
+                  caption: sanitizedCaption,
+                  vote_count: 0,
+                  comment_count: 0,
+                  created_at: new Date().toISOString(),
+                  is_owner: computeIsOwner({
+                    owner_token_hash,
+                    user_id,
+                    ip_address
+                  }, req, requesterIpHash),
+                  is_admin: !!is_admin
+                },
+                streak
+              });
+            }).catch((streakErr) => {
+              console.error('Streak update error:', streakErr);
+              res.status(201).json({
+                success: true,
+                photo: {
+                  id: this.lastID,
+                  meal_id: meal_id,
+                  meal_name: meal.name,
+                  mensa_location: meal.mensa_location,
+                  photo_url: photoPathToUrl(photoPath),
+                  author_name: sanitizedName,
+                  caption: sanitizedCaption,
+                  vote_count: 0,
+                  comment_count: 0,
+                  created_at: new Date().toISOString(),
+                  is_owner: computeIsOwner({
+                    owner_token_hash,
+                    user_id,
+                    ip_address
+                  }, req, requesterIpHash),
+                  is_admin: !!is_admin
+                }
+              });
+            });
+          }
         );
       }
     );

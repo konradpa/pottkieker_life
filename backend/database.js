@@ -114,6 +114,17 @@ db.serialize(() => {
     )
   `);
 
+  // User streaks table - tracks daily photo upload streaks
+  db.run(`
+    CREATE TABLE IF NOT EXISTS user_streaks (
+      user_id TEXT PRIMARY KEY,
+      current_streak INTEGER NOT NULL DEFAULT 0,
+      longest_streak INTEGER NOT NULL DEFAULT 0,
+      last_post_date TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   console.log('Database tables initialized');
 
   // Ensure ownership columns exist (for pre-existing databases).
@@ -132,7 +143,8 @@ db.serialize(() => {
     { table: 'photo_comments', column: 'user_id', definition: 'ALTER TABLE photo_comments ADD COLUMN user_id TEXT' },
     { table: 'comments', column: 'is_admin', definition: 'ALTER TABLE comments ADD COLUMN is_admin INTEGER DEFAULT 0' },
     { table: 'photo_comments', column: 'is_admin', definition: 'ALTER TABLE photo_comments ADD COLUMN is_admin INTEGER DEFAULT 0' },
-    { table: 'food_photos', column: 'is_admin', definition: 'ALTER TABLE food_photos ADD COLUMN is_admin INTEGER DEFAULT 0' }
+    { table: 'food_photos', column: 'is_admin', definition: 'ALTER TABLE food_photos ADD COLUMN is_admin INTEGER DEFAULT 0' },
+    { table: 'user_streaks', column: 'user_id', definition: 'CREATE TABLE user_streaks (user_id TEXT PRIMARY KEY, current_streak INTEGER NOT NULL DEFAULT 0, longest_streak INTEGER NOT NULL DEFAULT 0, last_post_date TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)' }
   ];
 
   migrations.forEach(({ table, column, definition }) => {

@@ -650,6 +650,43 @@ h1 {
     text-align: center;
 }
 
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: var(--size-s);
+    color: var(--text);
+}
+
+.leaderboard-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-3);
+    padding: 8px 10px;
+    border-radius: var(--br);
+    border: 1px solid var(--accent-2);
+}
+
+.lb-rank {
+    font-weight: 800;
+    color: var(--accent-bright);
+    letter-spacing: var(--track-tight);
+}
+
+.lb-name {
+    flex: 1;
+    margin: 0 10px;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: var(--track-tight);
+}
+
+.lb-streak {
+    color: var(--warm-2);
+    font-weight: 700;
+}
+
 .modal-open {
     overflow: hidden;
 }

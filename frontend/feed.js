@@ -15,6 +15,7 @@ const errorDiv = document.getElementById('error');
 const uploadErrorDiv = document.getElementById('upload-error');
 const photosContainer = document.getElementById('photos-container');
 const noPhotosDiv = document.getElementById('no-photos');
+const authorInput = document.getElementById('author-input');
 
 // State
 let currentPhotos = [];
@@ -39,6 +40,24 @@ function getCurrentUsername() {
     const email = user.email;
     if (email) return email.split('@')[0];
     return null;
+}
+
+function applyUploadIdentity() {
+    if (!authorInput) return;
+    const username = getCurrentUsername();
+    if (username) {
+        authorInput.value = username;
+        authorInput.readOnly = true;
+        authorInput.disabled = false;
+        authorInput.placeholder = username;
+        authorInput.title = 'Username comes from your account';
+    } else {
+        authorInput.readOnly = false;
+        authorInput.disabled = false;
+        authorInput.value = '';
+        authorInput.placeholder = 'Your name';
+        authorInput.title = 'Enter a display name';
+    }
 }
 
 function applyCommentIdentityToForm(form) {
@@ -72,12 +91,14 @@ function syncAllCommentForms() {
 }
 
 document.addEventListener('auth:changed', syncAllCommentForms);
+document.addEventListener('auth:changed', applyUploadIdentity);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadPhotos();
     setupEventListeners();
     loadVotedPhotos();
+    applyUploadIdentity();
 });
 
 // Event Listeners
@@ -227,8 +248,25 @@ async function handlePhotoUpload(event) {
         submitBtn.textContent = 'Uploading...';
     }
 
+    const username = getCurrentUsername();
+    if (username) {
+        formData.set('author_name', username);
+    } else {
+        const guestName = (authorInput?.value || '').trim();
+        if (!guestName) {
+            showUploadError('Please enter your name');
+            isUploading = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalSubmitText;
+            }
+            return;
+        }
+        formData.set('author_name', guestName);
+    }
+
     try {
-        const response = await fetch('/api/photos', {
+        const response = await fetchWithAuth('/api/photos', {
             method: 'POST',
             body: formData
         });
@@ -246,7 +284,11 @@ async function handlePhotoUpload(event) {
         mealSelect.disabled = true;
         mealSelect.innerHTML = '<option value="">Select mensa first...</option>';
         loadPhotos();
-        showMessage('Photo uploaded successfully!');
+        if (data.streak) {
+            showMessage(`Photo uploaded! Streak: ${data.streak.current_streak}🔥 (Best ${data.streak.longest_streak})`);
+        } else {
+            showMessage('Photo uploaded successfully!');
+        }
     } catch (error) {
         showUploadError(error.message);
     } finally {

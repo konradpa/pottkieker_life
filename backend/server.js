@@ -11,6 +11,7 @@ const portionsRouter = require('./routes/portions');
 const commentsRouter = require('./routes/comments');
 const photosRouter = require('./routes/photos');
 const adminRouter = require('./routes/admin');
+const streaksRouter = require('./routes/streaks');
 const { ownershipTokenMiddleware } = require('./middleware/ownershipToken');
 const { authMiddleware } = require('./middleware/authMiddleware');
 
@@ -58,6 +59,7 @@ app.use('/api/portions', portionsRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/photos', photosRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/streaks', streaksRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

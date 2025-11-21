@@ -11,6 +11,7 @@ const PENDING_USERNAME_KEY = 'pending_username';
 const USERNAME_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const USERNAME_REGEX = /^[a-zA-Z0-9._-]{3,32}$/;
 let userMenuOutsideListenerBound = false;
+let streakInfo = null;
 
 function getDisplayNameFromUser(user) {
     if (!user) return null;
@@ -45,6 +46,19 @@ function formatDuration(ms) {
 
 function escapeAttr(str) {
     return (str || '').replace(/"/g, '&quot;');
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+}
+
+async function authFetch(url, options = {}) {
+    const token = await getAuthToken();
+    const headers = { ...(options.headers || {}) };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(url, { ...options, headers });
 }
 
 // Initialize Auth
@@ -118,6 +132,7 @@ function wireUserMenu(user) {
     const saveBtn = document.getElementById('username-save-btn');
     const usernameInput = document.getElementById('username-input-menu');
     const errorEl = document.getElementById('username-error');
+    const leaderboardBtn = document.getElementById('streak-leaderboard-btn');
 
     if (usernameInput) {
         usernameInput.value = getDisplayNameFromUser(user) || '';
@@ -141,6 +156,10 @@ function wireUserMenu(user) {
         saveBtn.addEventListener('click', handleUsernameUpdate);
     }
 
+    if (leaderboardBtn) {
+        leaderboardBtn.addEventListener('click', showLeaderboardModal);
+    }
+
     if (!userMenuOutsideListenerBound) {
         document.addEventListener('click', (e) => {
             const profile = document.querySelector('.user-profile');
@@ -150,6 +169,8 @@ function wireUserMenu(user) {
         });
         userMenuOutsideListenerBound = true;
     }
+
+    fetchAndRenderStreak();
 }
 
 // UI Updates
@@ -164,6 +185,11 @@ function updateAuthUI(user) {
                 <div class="user-profile">
                     <button id="user-menu-toggle" class="user-pill">[ USER: ${escapeAttr(display).toUpperCase()} ]</button>
                     <div id="user-menu" class="user-menu">
+                        <div class="user-menu-section" id="streak-section">
+                            <label class="user-menu-label">[ STREAK ]</label>
+                            <div id="streak-info" class="user-menu-meta">Loading...</div>
+                            <button id="streak-leaderboard-btn" class="auth-btn auth-btn-compact">View Leaderboard</button>
+                        </div>
                         <div class="user-menu-section">
                             <label class="user-menu-label">[ CHANGE USERNAME ]</label>
                             <input type="text" id="username-input-menu" maxlength="32" value="${escapeAttr(display)}" placeholder="new username">
@@ -554,6 +580,70 @@ function updateUsernameMetaUI(user) {
         metaEl.textContent = `[ Next change in ${formatDuration(remaining)} ]`;
     } else {
         metaEl.textContent = '[ You can update once every 24h ]';
+    }
+}
+
+async function fetchAndRenderStreak() {
+    const infoEl = document.getElementById('streak-info');
+    if (!infoEl || !currentUser) return;
+    infoEl.textContent = 'Loading...';
+    try {
+        const res = await authFetch('/api/streaks/me');
+        if (!res.ok) throw new Error('Failed');
+        streakInfo = await res.json();
+        infoEl.textContent = `[ ${streakInfo.current_streak || 0}🔥 | Best ${streakInfo.longest_streak || 0} ]`;
+    } catch (e) {
+        infoEl.textContent = '[ Streak unavailable ]';
+    }
+}
+
+async function showLeaderboardModal() {
+    let modal = document.getElementById('streak-leaderboard-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'streak-leaderboard-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content reactor-panel">
+                <div class="modal-header">
+                    <h2>[ STREAK LEADERBOARD ]</h2>
+                    <button class="close-btn">×</button>
+                </div>
+                <div class="modal-body">
+                    <div id="leaderboard-list" class="leaderboard-list">Loading...</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelector('.close-btn').addEventListener('click', () => modal.style.display = 'none');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+    }
+
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+    const listEl = modal.querySelector('#leaderboard-list');
+    listEl.textContent = 'Loading...';
+    try {
+        const res = await authFetch('/api/streaks/leaderboard');
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        const rows = data.leaderboard || [];
+        if (!rows.length) {
+            listEl.textContent = 'No streaks yet.';
+        } else {
+            listEl.innerHTML = rows.map((row, idx) => {
+                const name = row.display_name || 'User';
+                return `<div class="leaderboard-row">
+                    <span class="lb-rank">#${idx + 1}</span>
+                    <span class="lb-name">${escapeHtml(name)}</span>
+                    <span class="lb-streak">${row.current_streak}🔥 (Best ${row.longest_streak})</span>
+                </div>`;
+            }).join('');
+        }
+    } catch (err) {
+        listEl.textContent = 'Failed to load leaderboard.';
     }
 }
 
