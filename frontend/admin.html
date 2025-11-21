@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,7 +63,7 @@
 
         .stat-card {
             background: var(--bg-3);
-            background-image: linear-gradient(to left, rgba(0,0,0,0.4), rgba(0,0,0,0));
+            background-image: linear-gradient(to left, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0));
             border: var(--bw) solid var(--accent);
             border-radius: var(--br);
             padding: 20px;
@@ -233,6 +234,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container admin-container">
         <header>
@@ -290,7 +292,7 @@
             // Wait a bit for auth.js to initialize
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            const user = window.AuthModule?.getUser();
+            const user = window.auth?.getUser();
 
             if (!user) {
                 // Not logged in, show access denied
@@ -301,7 +303,7 @@
 
             // Check if user is admin by calling backend
             try {
-                const token = await window.AuthModule.getAuthToken();
+                const token = await window.auth.getToken();
                 console.log('[Admin Check] User email:', user.email);
                 console.log('[Admin Check] Has token:', !!token);
 
@@ -346,7 +348,7 @@
         }
 
         async function getAuthHeaders() {
-            const token = await window.AuthModule.getAuthToken();
+            const token = await window.auth.getToken();
             return { 'Authorization': `Bearer ${token}` };
         }
 
@@ -495,4 +497,5 @@
         checkAdminAccess();
     </script>
 </body>
+
 </html>
