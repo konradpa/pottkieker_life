@@ -11,6 +11,12 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 // Middleware to verify admin JWT token
 function verifyAdmin(req, res, next) {
+  // Supabase/whitelist admin bypass
+  if (req.isAdmin) {
+    req.admin = { role: 'admin', source: 'supabase' };
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

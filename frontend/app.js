@@ -54,18 +54,22 @@ function applyCommentIdentityToForm(form) {
     const helper = form.querySelector('.comment-user-helper');
 
     if (nameInput) {
-        nameInput.value = username || '';
-        nameInput.readOnly = true;
-        nameInput.disabled = !username;
-        nameInput.placeholder = username ? username : 'Login to comment';
-        nameInput.title = username ? 'Username comes from your account' : 'Login to comment';
+        if (username) {
+            nameInput.value = username;
+            nameInput.readOnly = true;
+            nameInput.disabled = false;
+            nameInput.placeholder = username;
+            nameInput.title = 'Username comes from your account';
+        } else {
+            nameInput.readOnly = false;
+            nameInput.disabled = false;
+            nameInput.value = '';
+            nameInput.placeholder = 'Your name';
+            nameInput.title = 'Enter a display name';
+        }
     }
-    if (submitBtn) {
-        submitBtn.disabled = !username;
-    }
-    if (helper) {
-        helper.textContent = username ? `[ Posting as ${username} ]` : COMMENT_HELP_TEXT;
-    }
+    if (submitBtn) submitBtn.disabled = false;
+    if (helper) helper.textContent = username ? `[ Posting as ${username} ]` : '[ Posting as Guest ]';
 }
 
 function syncAllCommentForms() {
@@ -491,10 +495,17 @@ function organizeComments(comments) {
 
 // Recursive function to render a single comment and its replies
 function renderComment(comment, mealId) {
+    const isAdmin = !!comment.is_admin;
+    const isGuest = !!comment.is_guest && !isAdmin;
+    const authorLabel = `
+        <span class="comment-author ${isAdmin ? 'admin' : ''} ${isGuest ? 'guest' : ''}">
+            ${escapeHtml(comment.author_name)}${isAdmin ? ' (Admin)' : ''}${isGuest ? ' (Guest)' : ''}
+        </span>`;
+
     return `
         <div class="comment ${comment.parent_comment_id ? 'comment-reply' : ''}" data-comment-id="${comment.id}">
             <div class="comment-header">
-                <span class="comment-author">${escapeHtml(comment.author_name)}</span>
+                ${authorLabel}
                 <span class="comment-time">${formatTime(comment.timestamp)}</span>
                 ${comment.is_owner ? `<button class="delete-comment-btn" onclick="handleDeleteMealComment(${comment.id}, ${mealId})" title="Delete comment">×</button>` : ''}
             </div>
@@ -617,13 +628,15 @@ async function handleReplySubmit(e, parentCommentId, mealId) {
 
     const form = e.target;
     const username = getCurrentUsername();
-    if (!username) {
-        showError('Login required to comment.');
-        return;
-    }
+    const nameInput = form.querySelector('[name="author_name"]');
+    const author_name = username || (nameInput?.value.trim() || '');
     const comment_text = form.querySelector('[name="comment_text"]').value.trim();
     if (!comment_text) {
         showError('Comment cannot be empty.');
+        return;
+    }
+    if (!author_name) {
+        showError('Name is required for guest comments.');
         return;
     }
 
@@ -634,7 +647,7 @@ async function handleReplySubmit(e, parentCommentId, mealId) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                author_name: username,
+                author_name,
                 comment_text,
                 parent_comment_id: parentCommentId
             })
@@ -689,14 +702,15 @@ async function handleCommentSubmit(e) {
     const form = e.target;
     const mealId = form.dataset.mealId;
     const username = getCurrentUsername();
-    if (!username) {
-        showError('Login required to comment.');
-        return;
-    }
-
+    const nameInput = form.querySelector('[name="author_name"]');
+    const author_name = username || (nameInput?.value.trim() || '');
     const comment_text = form.querySelector('[name="comment_text"]').value.trim();
     if (!comment_text) {
         showError('Comment cannot be empty.');
+        return;
+    }
+    if (!author_name) {
+        showError('Name is required for guest comments.');
         return;
     }
 
@@ -706,7 +720,7 @@ async function handleCommentSubmit(e) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ author_name: username, comment_text })
+            body: JSON.stringify({ author_name, comment_text })
         });
 
         let responseData = {};

@@ -109,6 +109,14 @@ function getAuthorFromRequest(req) {
   return null;
 }
 
+function computeIsOwner(row, req, requesterIpHash) {
+  return !!(
+    (row.owner_token_hash && req.ownerTokenHash && row.owner_token_hash === req.ownerTokenHash) ||
+    (row.user_id && req.user?.id && row.user_id === req.user.id) ||
+    (!row.owner_token_hash && row.ip_address && requesterIpHash && row.ip_address === requesterIpHash)
+  );
+}
+
 /**
  * Strip EXIF metadata from uploaded photo for privacy
  * @param {string} filePath - Path to the uploaded file
@@ -145,6 +153,7 @@ async function stripExifMetadata(filePath) {
 router.get('/', (req, res) => {
   const { mensa = 'all', sort = 'new' } = req.query;
   const today = getTodayDate();
+  const requesterIpHash = hashIP(req.ip || req.connection?.remoteAddress || '');
 
   // Build query based on filters
   let query = `
@@ -156,6 +165,9 @@ router.get('/', (req, res) => {
       fp.caption,
       fp.created_at,
       fp.owner_token_hash,
+      fp.ip_address,
+      fp.user_id,
+      fp.is_admin,
       m.name as meal_name,
       m.mensa_location,
       COUNT(DISTINCT pv.id) as vote_count,
@@ -201,7 +213,8 @@ router.get('/', (req, res) => {
       vote_count: row.vote_count,
       comment_count: row.comment_count,
       created_at: row.created_at,
-      is_owner: !!(row.owner_token_hash && row.owner_token_hash === req.ownerTokenHash)
+      is_owner: computeIsOwner(row, req, requesterIpHash),
+      is_admin: !!row.is_admin
     }));
 
     res.json({ photos });
@@ -245,17 +258,22 @@ router.post('/', (req, res, next) => {
   const photoPath = relativePhotoPath(uploadedPhoto);
   const today = getTodayDate();
   const owner_token_hash = req.ownerTokenHash;
+  const user_id = req.user?.id || null;
+  const requesterIpHash = hashIP(req.ip || req.connection?.remoteAddress || '');
+  const is_admin = req.isAdmin ? 1 : 0;
 
   // Strip EXIF metadata for privacy
   await stripExifMetadata(uploadedPhoto.path);
 
   // Validate input
-  if (!meal_id || !author_name) {
+  const resolvedAuthor = getAuthorFromRequest(req) || (author_name || '').trim();
+
+  if (!meal_id || !resolvedAuthor) {
     cleanupUploadedFile(uploadedPhoto);
     return res.status(400).json({ error: 'Meal ID and author name are required' });
   }
 
-  if (author_name.length > 50) {
+  if (resolvedAuthor.length > 50) {
     cleanupUploadedFile(uploadedPhoto);
     return res.status(400).json({ error: 'Author name too long (max 50 characters)' });
   }
@@ -266,7 +284,7 @@ router.post('/', (req, res, next) => {
   }
 
   // Basic XSS prevention
-  const sanitizedName = author_name.replace(/<[^>]*>/g, '');
+  const sanitizedName = resolvedAuthor.replace(/<[^>]*>/g, '');
   const sanitizedCaption = caption.replace(/<[^>]*>/g, '');
 
   // Check if meal exists and is from today
@@ -304,9 +322,9 @@ router.post('/', (req, res, next) => {
 
         // Insert photo
         db.run(
-          `INSERT INTO food_photos (meal_id, photo_path, author_name, caption, ip_address, owner_token_hash, upload_date)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [meal_id, photoPath, sanitizedName, sanitizedCaption, ip_address, owner_token_hash, today],
+          `INSERT INTO food_photos (meal_id, photo_path, author_name, caption, ip_address, owner_token_hash, upload_date, user_id, is_admin)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [meal_id, photoPath, sanitizedName, sanitizedCaption, ip_address, owner_token_hash, today, user_id, is_admin],
           function(err) {
             if (err) {
               console.error('Insert photo error:', err);
@@ -323,14 +341,19 @@ router.post('/', (req, res, next) => {
                 mensa_location: meal.mensa_location,
                 photo_url: photoPathToUrl(photoPath),
                 author_name: sanitizedName,
-                caption: sanitizedCaption,
-                vote_count: 0,
-                comment_count: 0,
-                created_at: new Date().toISOString(),
-                is_owner: true
-              }
-            });
-          }
+      caption: sanitizedCaption,
+      vote_count: 0,
+      comment_count: 0,
+      created_at: new Date().toISOString(),
+      is_owner: computeIsOwner({
+        owner_token_hash,
+        user_id,
+        ip_address
+      }, req, requesterIpHash),
+      is_admin: !!is_admin
+    }
+  });
+}
         );
       }
     );
@@ -344,9 +367,35 @@ router.post('/', (req, res, next) => {
 router.delete('/:photoId', (req, res) => {
   const { photoId } = req.params;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
+  const user_id = req.user?.id || null;
+
+  if (req.isAdmin) {
+    db.get(
+      'SELECT photo_path FROM food_photos WHERE id = ?',
+      [photoId],
+      (lookupErr, photo) => {
+        if (lookupErr) {
+          console.error('Delete photo lookup error:', lookupErr);
+          return res.status(500).json({ error: 'Failed to delete photo' });
+        }
+        if (!photo) {
+          return res.status(404).json({ error: 'Photo not found' });
+        }
+        db.run('DELETE FROM food_photos WHERE id = ?', [photoId], function(err) {
+          if (err) {
+            console.error('Delete photo error:', err);
+            return res.status(500).json({ error: 'Failed to delete photo' });
+          }
+          removePhotoByRelativePath(photo.photo_path);
+          return res.json({ success: true });
+        });
+      }
+    );
+    return;
+  }
 
   db.get(
-    'SELECT photo_path, owner_token_hash, ip_address FROM food_photos WHERE id = ?',
+    'SELECT photo_path, owner_token_hash, ip_address, user_id FROM food_photos WHERE id = ?',
     [photoId],
     (err, photo) => {
       if (err) {
@@ -360,8 +409,9 @@ router.delete('/:photoId', (req, res) => {
 
       const ownerMatches = photo.owner_token_hash && photo.owner_token_hash === req.ownerTokenHash;
       const legacyMatch = !photo.owner_token_hash && photo.ip_address === ip_address;
+      const userMatch = photo.user_id && user_id && photo.user_id === user_id;
 
-      if (!ownerMatches && !legacyMatch) {
+      if (!ownerMatches && !legacyMatch && !userMatch) {
         return res.status(403).json({ error: 'Cannot delete this photo' });
       }
 
@@ -483,7 +533,7 @@ router.get('/:photoId/comments', (req, res) => {
   const { photoId } = req.params;
 
   db.all(
-    `SELECT id, author_name, comment_text, created_at, owner_token_hash, parent_comment_id
+    `SELECT id, author_name, comment_text, created_at, owner_token_hash, parent_comment_id, is_admin, user_id
      FROM photo_comments
      WHERE photo_id = ?
      ORDER BY created_at ASC`,
@@ -500,7 +550,9 @@ router.get('/:photoId/comments', (req, res) => {
         comment_text: row.comment_text,
         created_at: row.created_at,
         parent_comment_id: row.parent_comment_id,
-        is_owner: !!(row.owner_token_hash && row.owner_token_hash === req.ownerTokenHash)
+        is_owner: !!(row.owner_token_hash && row.ownerTokenHash && row.owner_token_hash === req.ownerTokenHash),
+        is_admin: !!row.is_admin,
+        is_guest: !row.user_id
       }));
 
       res.json({ comments });
@@ -520,10 +572,12 @@ router.post('/:photoId/comments', express.json(), (req, res) => {
   const { photoId} = req.params;
   const { comment_text, parent_comment_id = null } = req.body;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
-  const author_name = getAuthorFromRequest(req);
+  const author_name = getAuthorFromRequest(req) || (req.body?.author_name || '').trim();
+  const user_id = req.user?.id || null;
+  const is_admin = req.isAdmin ? 1 : 0;
 
   if (!author_name) {
-    return res.status(401).json({ error: 'Login required to comment' });
+    return res.status(400).json({ error: 'Author name is required' });
   }
 
   // Validate input
@@ -585,34 +639,36 @@ router.post('/:photoId/comments', express.json(), (req, res) => {
           if (err) {
             console.error('Rate limit check error:', err);
             return res.status(500).json({ error: 'Database error' });
-          }
+        }
 
-          if (result.count >= 10) {
-            return res.status(429).json({ error: 'Too many comments. Please wait a few minutes.' });
-          }
+        if (result.count >= 10) {
+          return res.status(429).json({ error: 'Too many comments. Please wait a few minutes.' });
+        }
 
-          // Insert comment
-          db.run(
-            `INSERT INTO photo_comments (photo_id, author_name, comment_text, ip_address, owner_token_hash, parent_comment_id)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [photoId, sanitizedName, sanitizedComment, ip_address, req.ownerTokenHash, parent_comment_id],
+        // Insert comment
+        db.run(
+            `INSERT INTO photo_comments (photo_id, author_name, comment_text, ip_address, owner_token_hash, parent_comment_id, user_id, is_admin)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [photoId, sanitizedName, sanitizedComment, ip_address, req.ownerTokenHash, parent_comment_id, user_id, is_admin],
             function(err) {
               if (err) {
                 console.error('Insert comment error:', err);
                 return res.status(500).json({ error: 'Failed to add comment' });
               }
 
-              res.status(201).json({
-                success: true,
-                comment: {
-                  id: this.lastID,
-                  author_name: sanitizedName,
-                  comment_text: sanitizedComment,
-                  created_at: new Date().toISOString(),
-                  parent_comment_id: parent_comment_id,
-                  is_owner: true
-                }
-              });
+            res.status(201).json({
+              success: true,
+              comment: {
+                id: this.lastID,
+                author_name: sanitizedName,
+                comment_text: sanitizedComment,
+                created_at: new Date().toISOString(),
+                parent_comment_id: parent_comment_id,
+                is_owner: true,
+                is_admin: !!is_admin,
+                is_guest: !user_id
+              }
+            });
             }
           );
         }
@@ -628,6 +684,22 @@ router.post('/:photoId/comments', express.json(), (req, res) => {
 router.delete('/comments/:commentId', (req, res) => {
   const { commentId } = req.params;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
+
+  if (req.isAdmin) {
+    db.run('DELETE FROM photo_comments WHERE id = ?', [commentId], function(err) {
+      if (err) {
+        console.error('Delete comment error:', err);
+        return res.status(500).json({ error: 'Failed to delete comment' });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Comment not found' });
+      }
+
+      return res.json({ success: true });
+    });
+    return;
+  }
 
   db.get('SELECT owner_token_hash, ip_address FROM photo_comments WHERE id = ?', [commentId], (err, comment) => {
     if (err) {
@@ -672,6 +744,7 @@ router.delete('/comments/:commentId', (req, res) => {
 router.get('/by-meal/:mealId', (req, res) => {
   const { mealId } = req.params;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
+  const requesterIpHash = hashIP(req.ip || req.connection?.remoteAddress || '');
 
   const query = `
     SELECT
@@ -682,6 +755,9 @@ router.get('/by-meal/:mealId', (req, res) => {
       fp.caption,
       fp.created_at,
       fp.owner_token_hash,
+      fp.ip_address,
+      fp.user_id,
+      fp.is_admin,
       m.name as meal_name,
       m.mensa_location,
       COALESCE(pv.vote_count, 0) as vote_count,
@@ -723,7 +799,8 @@ router.get('/by-meal/:mealId', (req, res) => {
       comment_count: row.comment_count || 0,
       created_at: row.created_at,
       user_voted: !!row.user_voted,
-      is_owner: !!(row.owner_token_hash && row.owner_token_hash === req.ownerTokenHash)
+      is_owner: computeIsOwner(row, req, requesterIpHash),
+      is_admin: !!row.is_admin
     }));
 
     res.json({ photos });

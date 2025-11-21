@@ -5,12 +5,21 @@ const { createClient } = require('@supabase/supabase-js');
 // The getUser() method validates the token against Supabase's auth service.
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const adminEmails = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
 
 let supabase;
 if (supabaseUrl && supabaseKey) {
     supabase = createClient(supabaseUrl, supabaseKey);
 } else {
     console.warn('Supabase credentials not found in .env. Auth middleware will be disabled.');
+}
+
+function isAdminEmail(email) {
+    if (!email) return false;
+    return adminEmails.includes(String(email).toLowerCase());
 }
 
 /**
@@ -21,6 +30,7 @@ if (supabaseUrl && supabaseKey) {
 async function authMiddleware(req, res, next) {
     // Default to null (guest)
     req.user = null;
+    req.isAdmin = false;
 
     if (!supabase) {
         return next();
@@ -48,6 +58,7 @@ async function authMiddleware(req, res, next) {
             email: user.email,
             user_metadata: user.user_metadata || {}
         };
+        req.isAdmin = user.user_metadata?.role === 'admin' || isAdminEmail(user.email);
 
         next();
     } catch (err) {
@@ -56,4 +67,4 @@ async function authMiddleware(req, res, next) {
     }
 }
 
-module.exports = { authMiddleware };
+module.exports = { authMiddleware, isAdminEmail };

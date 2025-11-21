@@ -62,6 +62,7 @@ db.serialize(() => {
       owner_token_hash TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       user_id TEXT,
+      is_admin INTEGER DEFAULT 0,
       FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE
     )
   `);
@@ -79,6 +80,7 @@ db.serialize(() => {
       upload_date DATE NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       user_id TEXT,
+      is_admin INTEGER DEFAULT 0,
       FOREIGN KEY (meal_id) REFERENCES meals(id) ON DELETE CASCADE
     )
   `);
@@ -107,6 +109,7 @@ db.serialize(() => {
       owner_token_hash TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       user_id TEXT,
+      is_admin INTEGER DEFAULT 0,
       FOREIGN KEY (photo_id) REFERENCES food_photos(id) ON DELETE CASCADE
     )
   `);
@@ -126,7 +129,10 @@ db.serialize(() => {
     { table: 'comments', column: 'user_id', definition: 'ALTER TABLE comments ADD COLUMN user_id TEXT' },
     { table: 'food_photos', column: 'user_id', definition: 'ALTER TABLE food_photos ADD COLUMN user_id TEXT' },
     { table: 'photo_votes', column: 'user_id', definition: 'ALTER TABLE photo_votes ADD COLUMN user_id TEXT' },
-    { table: 'photo_comments', column: 'user_id', definition: 'ALTER TABLE photo_comments ADD COLUMN user_id TEXT' }
+    { table: 'photo_comments', column: 'user_id', definition: 'ALTER TABLE photo_comments ADD COLUMN user_id TEXT' },
+    { table: 'comments', column: 'is_admin', definition: 'ALTER TABLE comments ADD COLUMN is_admin INTEGER DEFAULT 0' },
+    { table: 'photo_comments', column: 'is_admin', definition: 'ALTER TABLE photo_comments ADD COLUMN is_admin INTEGER DEFAULT 0' },
+    { table: 'food_photos', column: 'is_admin', definition: 'ALTER TABLE food_photos ADD COLUMN is_admin INTEGER DEFAULT 0' }
   ];
 
   migrations.forEach(({ table, column, definition }) => {

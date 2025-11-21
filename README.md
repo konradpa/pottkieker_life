@@ -19,6 +19,8 @@ Source code for [pottkieker.life](https://pottkieker.life)
   - Supabase Auth (email/password + Google OAuth)
   - Username support surfaced in UI (email, Google)
   - Comments use the authenticated username (login required to comment, username change limited to once per 24h)
+  - Admin whitelist via `ADMIN_EMAILS` env (comma-separated). Admins can access `/api/admin` without the legacy password and can delete any photo/comment; admin comments show a red `(Admin)` badge.
+  - Guests can still post; guest identities use cookies/IP for ownership, and delete remains possible from the same browser.
 - **Task Scheduling**: node-cron for automated meal data fetching and cleanup
 - **XML Parsing**: xml2js for processing OpenMensa XML feeds
 

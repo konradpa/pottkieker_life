@@ -1009,6 +1009,16 @@ h1 {
     flex: 1;
 }
 
+.comment-author.admin {
+    color: var(--danger-bright);
+    font-weight: 800;
+}
+
+.comment-author.guest {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
 .comment-text {
     font-size: 11px;
     color: var(--text-muted);

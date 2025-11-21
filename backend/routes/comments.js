@@ -12,15 +12,20 @@ function getAuthorFromRequest(req) {
   return null;
 }
 
+function getIsAdmin(req) {
+  return !!req.isAdmin;
+}
+
 /**
  * GET /api/comments/:mealId
  * Get all comments for a specific meal
  */
 router.get('/:mealId', (req, res) => {
   const { mealId } = req.params;
+  const requesterIpHash = hashIP(req.ip || req.connection?.remoteAddress || '');
 
   db.all(
-    `SELECT id, author_name, comment_text, timestamp, owner_token_hash, parent_comment_id
+    `SELECT id, author_name, comment_text, timestamp, owner_token_hash, parent_comment_id, is_admin, user_id, ip_address
      FROM comments
      WHERE meal_id = ?
      ORDER BY timestamp ASC`,
@@ -37,7 +42,13 @@ router.get('/:mealId', (req, res) => {
         comment_text: row.comment_text,
         timestamp: row.timestamp,
         parent_comment_id: row.parent_comment_id,
-        is_owner: !!(row.owner_token_hash && row.owner_token_hash === req.ownerTokenHash)
+        is_owner: !!(
+          (row.owner_token_hash && req.ownerTokenHash && row.owner_token_hash === req.ownerTokenHash) ||
+          (row.user_id && req.user?.id && row.user_id === req.user.id) ||
+          (!row.owner_token_hash && row.ip_address && requesterIpHash && row.ip_address === requesterIpHash)
+        ),
+        is_admin: !!row.is_admin,
+        is_guest: !row.user_id
       }));
 
       res.json({ comments });
@@ -58,15 +69,17 @@ router.post('/:mealId', express.json(), (req, res) => {
   const { comment_text, parent_comment_id = null } = req.body;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
   const owner_token_hash = req.ownerTokenHash;
-  const author_name = getAuthorFromRequest(req);
-
-  if (!author_name) {
-    return res.status(401).json({ error: 'Login required to comment' });
-  }
+  const author_name = getAuthorFromRequest(req) || (req.body?.author_name || '').trim();
+  const user_id = req.user?.id || null;
+  const is_admin = getIsAdmin(req) ? 1 : 0;
 
   // Validate input
   if (!comment_text) {
     return res.status(400).json({ error: 'Comment text is required' });
+  }
+
+  if (!author_name) {
+    return res.status(400).json({ error: 'Author name is required' });
   }
 
   if (author_name.length > 50) {
@@ -135,9 +148,9 @@ router.post('/:mealId', express.json(), (req, res) => {
 
           // Insert comment
           db.run(
-            `INSERT INTO comments (meal_id, author_name, comment_text, ip_address, owner_token_hash, parent_comment_id)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [mealId, sanitizedName, sanitizedComment, ip_address, owner_token_hash, parent_comment_id],
+            `INSERT INTO comments (meal_id, author_name, comment_text, ip_address, owner_token_hash, parent_comment_id, user_id, is_admin)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [mealId, sanitizedName, sanitizedComment, ip_address, owner_token_hash, parent_comment_id, user_id, is_admin],
             function(err) {
               if (err) {
                 console.error('Insert comment error:', err);
@@ -152,7 +165,9 @@ router.post('/:mealId', express.json(), (req, res) => {
                   comment_text: sanitizedComment,
                   timestamp: new Date().toISOString(),
                   parent_comment_id: parent_comment_id,
-                  is_owner: true
+                  is_owner: true,
+                  is_admin: !!is_admin,
+                  is_guest: !user_id
                 }
               });
             }
@@ -171,15 +186,34 @@ router.delete('/:commentId', (req, res) => {
   const { commentId } = req.params;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
   const owner_token_hash = req.ownerTokenHash;
+  const user_id = req.user?.id || null;
+
+  if (req.isAdmin) {
+    db.run('DELETE FROM comments WHERE id = ?', [commentId], function(err) {
+      if (err) {
+        console.error('Delete comment error:', err);
+        return res.status(500).json({ error: 'Failed to delete comment' });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Comment not found' });
+      }
+
+      return res.json({ success: true });
+    });
+    return;
+  }
 
   db.run(
     `DELETE FROM comments
      WHERE id = ?
        AND (
+         (user_id IS NOT NULL AND user_id = ?)
+         OR
          owner_token_hash = ?
          OR (owner_token_hash IS NULL AND ip_address = ?)
        )`,
-    [commentId, owner_token_hash, ip_address],
+    [commentId, user_id, owner_token_hash, ip_address],
     function(err) {
       if (err) {
         console.error('Delete comment error:', err);
