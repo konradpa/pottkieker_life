@@ -30,12 +30,21 @@ function createAuthMiddleware(supabase) {
         req.user = null;
         req.isAdmin = false;
 
+        // Log all requests to /api/admin to verify they reach the server
+        if (req.path && req.path.includes('/admin')) {
+            console.log(`[Auth] Processing request for: ${req.path}`);
+        }
+
         if (!supabase) {
+            console.warn('[Auth] Supabase client is missing!');
             return next();
         }
 
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            if (req.path && req.path.includes('/admin')) {
+                console.log('[Auth] No Bearer token found in header');
+            }
             return next();
         }
 
@@ -44,9 +53,13 @@ function createAuthMiddleware(supabase) {
         try {
             const { data: { user }, error } = await supabase.auth.getUser(token);
 
-            if (error || !user) {
-                // Token invalid or expired
-                // We don't error out, just treat as guest
+            if (error) {
+                console.error('[Auth] Supabase getUser error:', error.message);
+                return next();
+            }
+
+            if (!user) {
+                console.log('[Auth] No user returned from Supabase');
                 return next();
             }
 
