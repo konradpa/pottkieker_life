@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 // Import routes
 const mealsRouter = require('./routes/meals');
@@ -14,10 +15,24 @@ const adminRouter = require('./routes/admin');
 const streaksRouter = require('./routes/streaks');
 const userRouter = require('./routes/user');
 const { ownershipTokenMiddleware } = require('./middleware/ownershipToken');
-const { authMiddleware } = require('./middleware/authMiddleware');
+const { createAuthMiddleware } = require('./middleware/authMiddleware');
 
 // Initialize database
 require('./database');
+
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+let supabase;
+
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+} else {
+  console.warn('Supabase credentials not found in .env. Auth middleware will be disabled.');
+}
+
+// Initialize auth middleware
+const authMiddleware = createAuthMiddleware(supabase);
 
 // Initialize photo cleanup scheduler
 const { initPhotoCleanupScheduler } = require('./utils/photoCleanup');
