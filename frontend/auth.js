@@ -601,21 +601,26 @@ async function handleDeleteAccount() {
 }
 
 async function fetchAndRenderStreak() {
-    if (!currentUser) return;
+    if (!currentUser) {
+        streakInfo = null;
+        updateStreakDisplay();
+        return;
+    }
     try {
         const res = await authFetch('/api/streaks/me');
         if (!res.ok) throw new Error('Failed');
         streakInfo = await res.json();
-        updateStreakDisplay();
     } catch (e) {
         console.error('Failed to fetch streak:', e);
+        streakInfo = null;
     }
+    updateStreakDisplay();
 }
 
 async function updateStreakDisplay() {
-    // Get or create streak container in header
     let streakContainer = document.getElementById('streak-display-container');
 
+    // Get or create streak container in header
     if (!streakContainer) {
         const header = document.querySelector('header');
         if (!header) return;
@@ -647,45 +652,42 @@ async function updateStreakDisplay() {
         const lbData = await lbRes.json();
         const topThree = (lbData.leaderboard || []).slice(0, 3);
 
-        let html = '<div class="streak-info streak-clickable">';
+        let sections = [];
 
-        // Always show "Photos in a row:" section
+        // Show personal streak only when logged in
         if (currentUser) {
-            // Logged in: show actual streak
-            const meRes = await authFetch('/api/streaks/me');
-            if (meRes.ok) {
-                const myStreak = await meRes.json();
-                html += `<div class="streak-item streak-own">
+            let myStreak = streakInfo;
+            if (!myStreak) {
+                const meRes = await authFetch('/api/streaks/me');
+                if (meRes.ok) {
+                    myStreak = await meRes.json();
+                }
+            }
+
+            if (myStreak) {
+                sections.push(`<div class="streak-item streak-own">
                     <span class="streak-label">Photos in a row:</span>
                     <span class="streak-value">${myStreak.current_streak || 0}🔥</span>
-                </div>`;
+                </div>`);
             }
-        } else {
-            // Guest: show 0 to demonstrate the feature
-            html += `<div class="streak-item streak-own">
-                <span class="streak-label">Photos in a row:</span>
-                <span class="streak-value">0🔥</span>
-            </div>`;
         }
 
         // Show top 3 (always visible)
         if (topThree.length > 0) {
-            html += '<div class="streak-divider">|</div>';
-            html += '<div class="streak-item streak-top3">';
-            html += '<span class="streak-label">Top 3:</span>';
+            const topHtml = ['<div class="streak-item streak-top3">', '<span class="streak-label">Top 3:</span>'];
             topThree.forEach((row, idx) => {
                 const name = row.display_name || 'User';
                 const medal = ['🥇', '🥈', '🥉'][idx];
-                html += `<span class="streak-top-entry">${medal} ${escapeHtml(name)}: ${row.current_streak}🔥</span>`;
+                topHtml.push(`<span class="streak-top-entry">${medal} ${escapeHtml(name)}: ${row.current_streak}🔥</span>`);
             });
-            html += '</div>';
+            topHtml.push('</div>');
+            sections.push(topHtml.join(''));
         } else {
             // No streaks exist yet
-            html += '<div class="streak-divider">|</div>';
-            html += '<div class="streak-item"><span class="streak-label">No streaks yet - be the first!</span></div>';
+            sections.push('<div class="streak-item"><span class="streak-label">No streaks yet - be the first!</span></div>');
         }
 
-        html += '</div>';
+        const html = `<div class="streak-info streak-clickable">${sections.join('<div class="streak-divider">|</div>')}</div>`;
         streakContainer.innerHTML = html;
 
         // Make streak bar clickable

@@ -121,6 +121,7 @@ db.serialize(() => {
       current_streak INTEGER NOT NULL DEFAULT 0,
       longest_streak INTEGER NOT NULL DEFAULT 0,
       last_post_date TEXT,
+      display_name TEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -144,7 +145,7 @@ db.serialize(() => {
     { table: 'comments', column: 'is_admin', definition: 'ALTER TABLE comments ADD COLUMN is_admin INTEGER DEFAULT 0' },
     { table: 'photo_comments', column: 'is_admin', definition: 'ALTER TABLE photo_comments ADD COLUMN is_admin INTEGER DEFAULT 0' },
     { table: 'food_photos', column: 'is_admin', definition: 'ALTER TABLE food_photos ADD COLUMN is_admin INTEGER DEFAULT 0' },
-    { table: 'user_streaks', column: 'user_id', definition: 'CREATE TABLE user_streaks (user_id TEXT PRIMARY KEY, current_streak INTEGER NOT NULL DEFAULT 0, longest_streak INTEGER NOT NULL DEFAULT 0, last_post_date TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)' }
+    { table: 'user_streaks', column: 'user_id', definition: 'CREATE TABLE user_streaks (user_id TEXT PRIMARY KEY, current_streak INTEGER NOT NULL DEFAULT 0, longest_streak INTEGER NOT NULL DEFAULT 0, last_post_date TEXT, display_name TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)' }
   ];
 
   migrations.forEach(({ table, column, definition }) => {
@@ -165,6 +166,74 @@ db.serialize(() => {
         });
       }
     });
+  });
+
+  // Persist a last-known display name for streaks so leaderboard survives photo cleanup
+  db.all(`PRAGMA table_info(user_streaks)`, (infoErr, columns) => {
+    if (infoErr) {
+      console.error('Failed to inspect user_streaks table:', infoErr);
+      return;
+    }
+
+    const hasDisplayName = Array.isArray(columns) && columns.some((col) => col.name === 'display_name');
+    const runBackfill = () => {
+      db.all(
+        `
+          SELECT us.user_id,
+                 (
+                   SELECT fp.author_name
+                   FROM food_photos fp
+                   WHERE fp.user_id = us.user_id
+                   ORDER BY fp.created_at DESC
+                   LIMIT 1
+                 ) AS latest_name
+          FROM user_streaks us
+          WHERE (us.display_name IS NULL OR us.display_name = '')
+        `,
+        (backfillErr, rows) => {
+          if (backfillErr) {
+            console.error('Failed to backfill streak display names:', backfillErr);
+            return;
+          }
+
+          if (!rows || rows.length === 0) {
+            return;
+          }
+
+          rows.forEach(({ user_id, latest_name }) => {
+            if (!latest_name) return;
+            const sanitized = latest_name.replace(/<[^>]*>/g, '').slice(0, 50);
+            db.run(
+              'UPDATE user_streaks SET display_name = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+              [sanitized, user_id],
+              (updateErr) => {
+                if (updateErr) {
+                  console.error(`Failed to update display name for user ${user_id}:`, updateErr);
+                }
+              }
+            );
+          });
+        }
+      );
+    };
+
+    if (!hasDisplayName) {
+      db.run('ALTER TABLE user_streaks ADD COLUMN display_name TEXT', (alterErr) => {
+        if (alterErr) {
+          if (alterErr.message && alterErr.message.includes('duplicate column name')) {
+            runBackfill();
+            return;
+          }
+          console.error('Failed to add display_name to user_streaks:', alterErr);
+          return;
+        }
+
+        runBackfill();
+      });
+      return;
+    }
+
+    runBackfill();
   });
 });
 

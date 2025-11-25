@@ -40,9 +40,9 @@ router.get('/leaderboard', (req, res) => {
         us.longest_streak,
         us.last_post_date,
         COALESCE(
-          (SELECT author_name FROM food_photos fp WHERE fp.user_id = us.user_id ORDER BY fp.created_at DESC LIMIT 1),
-          'User'
-        ) as display_name
+          us.display_name,
+          (SELECT author_name FROM food_photos fp WHERE fp.user_id = us.user_id ORDER BY fp.created_at DESC LIMIT 1)
+        ) as raw_display_name
       FROM user_streaks us
       ORDER BY us.current_streak DESC, us.longest_streak DESC, us.updated_at DESC
       LIMIT ?
@@ -53,7 +53,18 @@ router.get('/leaderboard', (req, res) => {
         console.error('Leaderboard fetch error:', err);
         return res.status(500).json({ error: 'Failed to fetch leaderboard' });
       }
-      return res.json({ leaderboard: rows || [] });
+
+      const cleaned = (rows || [])
+        .map((row) => {
+          const name = (row.raw_display_name || '').trim();
+          const placeholder = !name || /^user(\s*\d+)?$/i.test(name);
+          if (placeholder) return null; // Drop obviously broken rows so leaderboard clears when data is bad
+          const { raw_display_name, ...rest } = row;
+          return { ...rest, display_name: name };
+        })
+        .filter(Boolean);
+
+      return res.json({ leaderboard: cleaned });
     }
   );
 });

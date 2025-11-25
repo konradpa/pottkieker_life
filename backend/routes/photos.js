@@ -99,12 +99,15 @@ function computeIsOwner(row, req, requesterIpHash) {
   );
 }
 
-async function updateUserStreak(db, user_id) {
+async function updateUserStreak(db, user_id, display_name) {
   if (!user_id) return null;
   return new Promise((resolve, reject) => {
     const today = getBerlinToday();
     const todayStr = formatDate(today);
     const isTodayWeekend = isWeekend(today);
+    const safeDisplayName = display_name && display_name.trim()
+      ? display_name.trim().slice(0, 50)
+      : null;
 
     db.get('SELECT current_streak, longest_streak, last_post_date FROM user_streaks WHERE user_id = ?', [user_id], (err, row) => {
       if (err) return reject(err);
@@ -135,18 +138,19 @@ async function updateUserStreak(db, user_id) {
       }
 
       const upsertSql = `
-        INSERT INTO user_streaks (user_id, current_streak, longest_streak, last_post_date, updated_at)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        INSERT INTO user_streaks (user_id, current_streak, longest_streak, last_post_date, display_name, updated_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT(user_id) DO UPDATE SET
           current_streak = excluded.current_streak,
           longest_streak = excluded.longest_streak,
           last_post_date = excluded.last_post_date,
+          display_name = COALESCE(excluded.display_name, user_streaks.display_name),
           updated_at = CURRENT_TIMESTAMP
       `;
 
-      db.run(upsertSql, [user_id, current_streak, longest_streak, todayStr], (upsertErr) => {
+      db.run(upsertSql, [user_id, current_streak, longest_streak, todayStr, safeDisplayName], (upsertErr) => {
         if (upsertErr) return reject(upsertErr);
-        resolve({ current_streak, longest_streak, last_post_date: todayStr });
+        resolve({ current_streak, longest_streak, last_post_date: todayStr, display_name: safeDisplayName });
       });
     });
   });
@@ -410,7 +414,7 @@ router.post('/', (req, res, next) => {
               return res.status(500).json({ error: 'Failed to upload photo' });
             }
 
-            updateUserStreak(db, user_id).then((streak) => {
+            updateUserStreak(db, user_id, sanitizedName).then((streak) => {
               res.status(201).json({
                 success: true,
                 photo: {
