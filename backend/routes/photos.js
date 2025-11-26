@@ -104,7 +104,7 @@ async function updateUserStreak(db, user_id, display_name) {
   return new Promise((resolve, reject) => {
     const today = getBerlinToday();
     const todayStr = formatDate(today);
-    const isTodayWeekend = isWeekend(today);
+    const prevValidStr = previousValidPostDate(today);
     const safeDisplayName = display_name && display_name.trim()
       ? display_name.trim().slice(0, 50)
       : null;
@@ -119,15 +119,8 @@ async function updateUserStreak(db, user_id, display_name) {
       if (last === todayStr) {
         // already counted today
       } else {
-        const prevValid = previousValidPostDate(today);
-
-        if (last && last === prevValid) {
+        if (last && last === prevValidStr) {
           current_streak += 1;
-        } else if (!last && !isTodayWeekend) {
-          current_streak = 1;
-        } else if (!last && isTodayWeekend) {
-          // weekend first post, start streak
-          current_streak = 1;
         } else {
           current_streak = 1;
         }
