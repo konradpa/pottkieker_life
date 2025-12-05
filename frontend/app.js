@@ -22,7 +22,6 @@ const errorEl = document.getElementById('error');
 const sortSelect = document.getElementById('sort-select');
 const openingTimesEl = document.getElementById('opening-times');
 const subtitleEl = document.querySelector('.subtitle');
-const COMMENT_HELP_TEXT = '[ Login required to comment ]';
 
 // Auth Helper
 async function fetchWithAuth(url, options = {}) {
