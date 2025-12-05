@@ -21,7 +21,6 @@ const authorInput = document.getElementById('author-input');
 let currentPhotos = [];
 let votedPhotos = new Set();
 let isUploading = false;
-const COMMENT_HELP_TEXT = '[ Login required to comment ]';
 
 async function fetchWithAuth(url, options = {}) {
     const token = window.auth ? await window.auth.getToken() : null;

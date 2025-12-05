@@ -192,29 +192,16 @@ function getAuthorFromRequest(req) {
   return null;
 }
 
-/**
- * Strip EXIF metadata from uploaded photo for privacy
- * @param {string} filePath - Path to the uploaded file
- */
 async function stripExifMetadata(filePath) {
   try {
-    // Read the image, strip metadata, and overwrite
     await sharp(filePath)
-      .rotate() // Auto-rotate based on EXIF (before stripping)
-      .withMetadata({ orientation: undefined }) // Remove EXIF but keep basic info
+      .rotate()
+      .withMetadata({ orientation: undefined })
       .toBuffer()
-      .then(buffer => {
-        // Completely strip all metadata
-        return sharp(buffer)
-          .toFile(filePath + '.tmp');
-      })
-      .then(() => {
-        // Replace original with stripped version
-        fs.renameSync(filePath + '.tmp', filePath);
-      });
+      .then(buffer => sharp(buffer).toFile(filePath + '.tmp'))
+      .then(() => fs.renameSync(filePath + '.tmp', filePath));
   } catch (err) {
     console.error('Failed to strip EXIF metadata:', err);
-    // Don't fail the upload, just log the error
   }
 }
 
@@ -400,7 +387,7 @@ router.post('/', (req, res, next) => {
           `INSERT INTO food_photos (meal_id, photo_path, author_name, caption, ip_address, owner_token_hash, upload_date, user_id, is_admin)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [meal_id, photoPath, sanitizedName, sanitizedCaption, ip_address, owner_token_hash, today, user_id, is_admin],
-          function(err) {
+          function (err) {
             if (err) {
               console.error('Insert photo error:', err);
               cleanupUploadedFile(uploadedPhoto);
@@ -482,7 +469,7 @@ router.delete('/:photoId', (req, res) => {
         if (!photo) {
           return res.status(404).json({ error: 'Photo not found' });
         }
-        db.run('DELETE FROM food_photos WHERE id = ?', [photoId], function(err) {
+        db.run('DELETE FROM food_photos WHERE id = ?', [photoId], function (err) {
           if (err) {
             console.error('Delete photo error:', err);
             return res.status(500).json({ error: 'Failed to delete photo' });
@@ -519,7 +506,7 @@ router.delete('/:photoId', (req, res) => {
       db.run(
         'DELETE FROM food_photos WHERE id = ?',
         [photoId],
-        function(deleteErr) {
+        function (deleteErr) {
           if (deleteErr) {
             console.error('Delete photo error:', deleteErr);
             return res.status(500).json({ error: 'Failed to delete photo' });
@@ -599,7 +586,7 @@ router.post('/:photoId/vote', (req, res) => {
           db.run(
             'DELETE FROM photo_votes WHERE id = ?',
             [existingVote.id],
-            function(delErr) {
+            function (delErr) {
               if (delErr) {
                 console.error('Delete vote error:', delErr);
                 return res.status(500).json({ error: 'Failed to remove like' });
@@ -612,7 +599,7 @@ router.post('/:photoId/vote', (req, res) => {
           db.run(
             `INSERT INTO photo_votes (photo_id, ip_address) VALUES (?, ?)`,
             [photoId, ip_address],
-            function(insErr) {
+            function (insErr) {
               if (insErr) {
                 console.error('Insert vote error:', insErr);
                 return res.status(500).json({ error: 'Failed to like photo' });
@@ -670,7 +657,7 @@ router.get('/:photoId/comments', (req, res) => {
  *   parent_comment_id: number (optional, for replies)
  */
 router.post('/:photoId/comments', express.json(), (req, res) => {
-  const { photoId} = req.params;
+  const { photoId } = req.params;
   const { comment_text, parent_comment_id = null } = req.body;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
   const author_name = getAuthorFromRequest(req) || (req.body?.author_name || '').trim();
@@ -740,36 +727,36 @@ router.post('/:photoId/comments', express.json(), (req, res) => {
           if (err) {
             console.error('Rate limit check error:', err);
             return res.status(500).json({ error: 'Database error' });
-        }
+          }
 
-        if (result.count >= 10) {
-          return res.status(429).json({ error: 'Too many comments. Please wait a few minutes.' });
-        }
+          if (result.count >= 10) {
+            return res.status(429).json({ error: 'Too many comments. Please wait a few minutes.' });
+          }
 
-        // Insert comment
-        db.run(
+          // Insert comment
+          db.run(
             `INSERT INTO photo_comments (photo_id, author_name, comment_text, ip_address, owner_token_hash, parent_comment_id, user_id, is_admin)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [photoId, sanitizedName, sanitizedComment, ip_address, req.ownerTokenHash, parent_comment_id, user_id, is_admin],
-            function(err) {
+            function (err) {
               if (err) {
                 console.error('Insert comment error:', err);
                 return res.status(500).json({ error: 'Failed to add comment' });
               }
 
-            res.status(201).json({
-              success: true,
-              comment: {
-                id: this.lastID,
-                author_name: sanitizedName,
-                comment_text: sanitizedComment,
-                created_at: new Date().toISOString(),
-                parent_comment_id: parent_comment_id,
-                is_owner: true,
-                is_admin: !!is_admin,
-                is_guest: !user_id
-              }
-            });
+              res.status(201).json({
+                success: true,
+                comment: {
+                  id: this.lastID,
+                  author_name: sanitizedName,
+                  comment_text: sanitizedComment,
+                  created_at: new Date().toISOString(),
+                  parent_comment_id: parent_comment_id,
+                  is_owner: true,
+                  is_admin: !!is_admin,
+                  is_guest: !user_id
+                }
+              });
             }
           );
         }
@@ -787,7 +774,7 @@ router.delete('/comments/:commentId', (req, res) => {
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
 
   if (req.isAdmin) {
-    db.run('DELETE FROM photo_comments WHERE id = ?', [commentId], function(err) {
+    db.run('DELETE FROM photo_comments WHERE id = ?', [commentId], function (err) {
       if (err) {
         console.error('Delete comment error:', err);
         return res.status(500).json({ error: 'Failed to delete comment' });
@@ -822,7 +809,7 @@ router.delete('/comments/:commentId', (req, res) => {
     db.run(
       'DELETE FROM photo_comments WHERE id = ?',
       [commentId],
-      function(deleteErr) {
+      function (deleteErr) {
         if (deleteErr) {
           console.error('Delete comment error:', deleteErr);
           return res.status(500).json({ error: 'Failed to delete comment' });
@@ -845,7 +832,7 @@ router.delete('/comments/:commentId', (req, res) => {
 router.get('/by-meal/:mealId', (req, res) => {
   const { mealId } = req.params;
   const ip_address = hashIP(req.ip || req.connection.remoteAddress);
-  const requesterIpHash = hashIP(req.ip || req.connection?.remoteAddress || '');
+  const requesterIpHash = ip_address;
 
   const query = `
     SELECT
